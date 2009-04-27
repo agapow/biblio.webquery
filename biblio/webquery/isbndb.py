@@ -24,13 +24,13 @@ ISBNDB_KEY = 'OPNH8HG2'
 
 class IsbndbQuery (BaseWebquery):
 	
-	def __init__ (self, key=ISBNDB_KEY):
+	def __init__ (self, key=ISBNDB_KEY, timeout=5.0, limits=None):
 		"""
 		C'tor, accepting an access key.
 		"""
 		root_url = ISBNDB_ROOTURL % {'key': key}
-		BaseWebquery.__init__ (self, root_url=root_url, \
-			limits=[querythrottle.OncePerSecondThrottleLimit()])
+		BaseWebquery.__init__ (self, root_url=root_url, timeout=timeout,
+			limits=limits)
 		
 	def query_mdata_by_isbn (self, isbn):
 		"""

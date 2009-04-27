@@ -44,7 +44,7 @@ class BaseQueryThrottle (object):
 	implementing those limits. Different restrictions can be implemented in
 	derived classes.
 	
-	**How it works:** Limits are constructed with set behaviour 
+	Limits are constructed with set behaviour 
 	
 	"""
 	# TODO: introduce special handlers for various failure actions?
@@ -98,7 +98,7 @@ class BaseQueryThrottle (object):
 				See `check_limit`
 		
 		This should be called by services to test whether a limit has been
-		reached. It calls Handling that circumstance is left to the calling method
+		reached. Handling that circumstance is left to the calling method
 		`check_limit`. This should be overridden in derived class to implement
 		different throttling methods.
 		

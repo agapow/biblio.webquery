@@ -24,13 +24,13 @@ LOC_ROOTURL = \
 
 class LocQuery (BaseWebquery):
 	
-	def __init__ (self):
+	def __init__ (self, timeout=5.0, limits=None):
 		"""
 		C'tor.
 		"""
 		root_url = LOC_ROOTURL % {'key': key}
-		BaseWebquery.__init__ (self, root_url=root_url, \
-			limits=[querythrottle.OncePerSecondThrottleLimit()])
+		BaseWebquery.__init__ (self, root_url=root_url,timeout=timeout,
+			limits=limits)
 		
 	def query_mdata_by_isbn (self, isbn, format='MODS'):
 		"""

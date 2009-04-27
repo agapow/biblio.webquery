@@ -45,7 +45,6 @@ class BaseWebquery (object):
 			limit.check_limit (self)
 		socket.setdefaulttimeout (self.timeout)
 		full_url = self.root_url + url
-		print "***", full_url
 		return urlopen (full_url).read()
 
 

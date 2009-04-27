@@ -27,4 +27,5 @@ References
 * Thanos Vassilakis has posted what looks like `a very useful module
   <http://pypi.python.org/pypi/book>`__ for querying by ISBN. However it seems
   to have disappeared from its home website.
+
 """

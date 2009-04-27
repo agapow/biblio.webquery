@@ -39,17 +39,23 @@ STRIP_PATS = [re.compile (x, flags=re.IGNORECASE+re.UNICODE) for x in
 ]
 AND_PAT = re.compile (r'\s+and\s+')
 
+WORLDCAT_FMTS = [
+	'raw',
+	'xml',
+	
+]
+
 
 ### IMPLEMENTATION ###
 
 class WorldcatQuery (BaseWebquery):
 	
-	def __init__ (self):
+	def __init__ (self, timeout=5.0, limits=None):
 		"""
 		C'tor.
 		"""
-		BaseWebquery.__init__ (self, root_url=WORLDCAT_ROOTURL, \
-			limits=[querythrottle.OncePerSecondThrottleLimit()])
+		BaseWebquery.__init__ (self, root_url=WORLDCAT_ROOTURL, timeout=5.0,
+			limits=None)
 		
 	def query_mdata_by_isbn (self, isbn):
 		"""
@@ -96,7 +102,7 @@ def parse_authors (auth_str):
 
 	"""
 	# TODO: Worldcat authors fields are often appended with extra information
-	# like "with a foreword by" etc. Largely these are seperatwd from the
+	# like "with a foreword by" etc. Largely these are separated from the
 	# author list by semi-colons and so should be easy to strip off.
 	
 	## Preconditions & preparation:
