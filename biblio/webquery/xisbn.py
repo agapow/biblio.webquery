@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-Querying WorldCat for bibliographic information and normalising the results.
+Querying WorldCat xISBN service for bibliographic information and normalising the results.
 
 """
 # TODO: error-handling logic is correct?
@@ -12,14 +12,17 @@ __docformat__ = 'restructuredtext en'
 ### IMPORTS ###
 
 import re
+try: 
+	from xml.etree import ElementTree
+except:
+	from elementtree import ElementTree
 
 from basewebquery import BaseWebquery
-import querythrottle
 
 
 ### CONSTANTS & DEFINES ###
 
-WORLDCAT_ROOTURL = 'http://xisbn.worldcat.org/webservices/xid/isbn/'
+XISBN_ROOTURL = 'http://xisbn.worldcat.org/webservices/xid/isbn/'
 
 # patterns for extracting author info
 STRIP_PATS = [re.compile (x, flags=re.IGNORECASE+re.UNICODE) for x in
@@ -39,25 +42,31 @@ STRIP_PATS = [re.compile (x, flags=re.IGNORECASE+re.UNICODE) for x in
 ]
 AND_PAT = re.compile (r'\s+and\s+')
 
-WORLDCAT_FMTS = [
+FORMATS = [
 	'raw',
 	'xml',
-	
+#	'html',
+#	'json',
+#	'python',
+#	'ruby',
+#	'php',
+#	'csv',
+#	'txt',
 ]
 
 
 ### IMPLEMENTATION ###
 
-class WorldcatQuery (BaseWebquery):
+class XisbnQuery (BaseWebquery):
 	
 	def __init__ (self, timeout=5.0, limits=None):
 		"""
 		C'tor.
 		"""
-		BaseWebquery.__init__ (self, root_url=WORLDCAT_ROOTURL, timeout=5.0,
+		BaseWebquery.__init__ (self, root_url=XISBN_ROOTURL, timeout=5.0,
 			limits=None)
 		
-	def query_mdata_by_isbn (self, isbn):
+	def query_mdata_by_isbn (self, isbn, fmt='xml'):
 		"""
 		Return publication data based on ISBN.
 		
@@ -66,26 +75,67 @@ class WorldcatQuery (BaseWebquery):
 				An ISBN-10 or ISBN-13.
 				
 		:Returns:
-			Publication data in Worldcat XML format.
+			Publication data in Xisbn XML format.
 		
 		"""
+		isbn = impl.normalize_isbn (isbn)
 		sub_url = '%(isbn)s?method=getMetadata&format=xml&fl=*' % {'isbn': isbn}
 		return self.query (sub_url)
 
-
-def parse_authors (auth_str):
+	def isbn10_to_isbn13 (self, isbn, fmt='xml'):
+		isbn = impl.normalize_isbn (isbn)
+		sub_url = '%(isbn)s?method=to13&format=xml' % {'isbn': isbn}
+		
+		
+		
+	
+def xisbn_metadata_xml_to_bibrecord (xml_txt):
 	"""
-	Clean up Worldcat author information into a more consistent format.
+	Translate the XML returned by xISBN to a BibRecord.
+	
+	:Parameters:
+		mdata_xml : string
+			An Xisbn record in XML.
+			
+	:Returns:
+		A dictionary with keys "year", "title" and "authors" parsed from the 
+		Xisbn record. If a field is not present or parseable, neither is
+		the key.
+		
+	"""
+	## Main:
+	# capture in etree and find record node
+	tree = ElementTree.fromstring (mdata_xml)
+	isbn_elem = tree.find ('{http://worldcat.org/xid/isbn/}isbn')
+	# parse individual fields
+	fields = {}
+	if (isbn_elem is not None):
+		year = isbn_elem.get ('year')
+		if (year):
+			fields['year'] = year
+		title = isbn_elem.get ('title')
+		if (title):
+			fields['title'] = parse_title (title)
+		author = isbn_elem.get ('author')
+		if (author):
+			fields['authors'] = parse_authors (author)
+	## Postconditions & return:
+	return fields
+
+
+def parse_xisbn_authors (auth_str):
+	"""
+	Clean up Xisbn author information into a more consistent format.
 
 	:Parameters:
 		auth_str : string
-			The "author" attribute from a Worldcat record in XML.
+			The "author" attribute from a Xisbn record in XML.
 	
 	:Returns:
 		A list of the authors in "reverse" format, e.g. "['Smith, A. B.',
 		'Jones, X. Y.']"
 
-	Worldcat data can be irregularly formatted, unpredictably including
+	Xisbn data can be irregularly formatted, unpredictably including
 	ancillary information. This function attempts to cleans up the author field
 	into a list of consistent author names.
 	
@@ -101,7 +151,7 @@ def parse_authors (auth_str):
 		['Madonna']
 
 	"""
-	# TODO: Worldcat authors fields are often appended with extra information
+	# TODO: Xisbn authors fields are often appended with extra information
 	# like "with a foreword by" etc. Largely these are separated from the
 	# author list by semi-colons and so should be easy to strip off.
 	
@@ -130,50 +180,7 @@ def parse_authors (auth_str):
 	return auth_list
 
 
-def parse_title (title):
-	"""
-	Clean up Worldcat title information into a more consistent format.
-	
-	Althogh this currently does nothing, in the future it will normalise the
-	titles, e.g. by stripping out subtitle and edition information.
-	
-	"""
-	return title
 
-
-def parse_metadata (mdata_xml):
-	"""
-	Retrieve fields from metadata and return and cleanup in a sensible form.
-	
-	:Parameters:
-		mdata_xml : string
-			An Worldcat record in XML.
-			
-	:Returns:
-		A dictionary with keys "year", "title" and "authors" parsed from the 
-		Worldcat record. If a field is not present or parseable, neither is
-		the key.
-		
-	"""
-	## Main:
-	# capture in etree and find record node
-	tree = ElementTree.fromstring (mdata_xml)
-	isbn_elem = tree.find ('{http://worldcat.org/xid/isbn/}isbn')
-	# parse individual fields
-	fields = {}
-	if (isbn_elem is not None):
-		year = isbn_elem.get ('year')
-		if (year):
-			fields['year'] = year
-		title = isbn_elem.get ('title')
-		if (title):
-			fields['title'] = parse_title (title)
-		author = isbn_elem.get ('author')
-		if (author):
-			fields['authors'] = parse_authors (author)
-	## Postconditions & return:
-	return fields
-			
 
 
 ### TEST & DEBUG ###

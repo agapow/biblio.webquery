@@ -11,13 +11,17 @@ __docformat__ = 'restructuredtext en'
 ### IMPORTS ###
 
 from basewebquery import BaseWebquery
-import querythrottle
 
 
 ### CONSTANTS & DEFINES ###
 
 ISBNDB_ROOTURL = 'http://isbndb.com/api/books.xml?access_key=%(key)s'
 ISBNDB_KEY = 'OPNH8HG2'
+
+FORMATS = [
+	'raw',
+	'xml',
+]
 
 
 ### IMPLEMENTATION ###
@@ -39,7 +43,6 @@ class IsbndbQuery (BaseWebquery):
 		sub_url = '&results=authors,subjects,texts&index1=isbn'\
 			'&value1=%(isbn)s' % {'isbn': isbn}
 		return self.query (sub_url)
-
 
 
 

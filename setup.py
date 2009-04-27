@@ -8,7 +8,7 @@ setup (
 	version=__version__,
 	description="Extracting bibliographic information from web services",
 	long_description=open("README.txt").read() + "\n" +
-	          open(os.path.join("docs", "HISTORY.txt")).read(),
+		open(os.path.join("docs", "HISTORY.txt")).read(),
 	classifiers=[
 		"Programming Language :: Python",
 		"Topic :: Software Development :: Libraries :: Python Modules",
@@ -16,7 +16,7 @@ setup (
 	keywords='web-service REST book',
 	author='Paul-Michael Agapow',
 	author_email='agapow@bbsrc.ac.uk',
-	url='http://www.agapow.net/software/bibliowebquery',
+	url='http://www.agapow.net/software/biblio.webquery',
 	license='BSD',
 	packages=find_packages(exclude=['ez_setup']),
 	namespace_packages=['biblio'],
