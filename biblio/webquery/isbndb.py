@@ -73,7 +73,6 @@ def isbndb_booklist_to_bibrecords (xml_txt):
 		self.publisher = u''
 		self.pubyear = None
 		self.edited = False
-		self.journal = u''
 
 
 def parse_isbndb_person (txt):

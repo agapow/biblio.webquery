@@ -21,23 +21,7 @@ from basewebquery import BaseWebquery
 
 XISBN_ROOTURL = 'http://xisbn.worldcat.org/webservices/xid/isbn/'
 
-# patterns for extracting author info
-STRIP_PATS = [re.compile (x, flags=re.IGNORECASE+re.UNICODE) for x in
-	[
-		r'^((edited )?by\s+)',   # "(edited )by ..."
-		r'\s*, editors\.?$',     # "..., editors"
-		r'^editors,?\s*',        # "editors, ..."
-		r'\s*;\s+with an introduction by .*$',
-		r'^\[\s*',               
-		r'\s*\]$',
-		r'\.{3,}',               # "..."
-		r'et[\. ]al\.',          # "et al."
-		r'\[',
-		r'\]',
-		r'\([^\)]+\)',          
-	]
-]
-AND_PAT = re.compile (r'\s+and\s+')
+
 
 FORMATS = [
 	'raw',
