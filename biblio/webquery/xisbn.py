@@ -12,11 +12,8 @@ __docformat__ = 'restructuredtext en'
 ### IMPORTS ###
 
 import re
-try: 
-	from xml.etree import ElementTree
-except:
-	from elementtree import ElementTree
 
+from impl import ElementTree
 from basewebquery import BaseWebquery
 
 
@@ -66,7 +63,7 @@ class XisbnQuery (BaseWebquery):
 		BaseWebquery.__init__ (self, root_url=XISBN_ROOTURL, timeout=5.0,
 			limits=None)
 		
-	def query_mdata_by_isbn (self, isbn, fmt='xml'):
+	def query_bibdata_by_isbn (self, isbn, fmt='xml'):
 		"""
 		Return publication data based on ISBN.
 		
@@ -82,7 +79,7 @@ class XisbnQuery (BaseWebquery):
 		sub_url = '%(isbn)s?method=getMetadata&format=xml&fl=*' % {'isbn': isbn}
 		return self.query (sub_url)
 
-	def isbn10_to_isbn13 (self, isbn, fmt='xml'):
+	def query_isbn10_to_13 (self, isbn, fmt='xml'):
 		isbn = impl.normalize_isbn (isbn)
 		sub_url = '%(isbn)s?method=to13&format=xml' % {'isbn': isbn}
 		
@@ -106,7 +103,7 @@ def xisbn_metadata_xml_to_bibrecord (xml_txt):
 	## Main:
 	# capture in etree and find record node
 	tree = ElementTree.fromstring (mdata_xml)
-	isbn_elem = tree.find ('{http://worldcat.org/xid/isbn/}isbn')
+	isbn_elem = tree.find ('isbn')
 	# parse individual fields
 	fields = {}
 	if (isbn_elem is not None):

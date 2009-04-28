@@ -12,43 +12,54 @@ __docformat__ = 'restructuredtext en'
 
 import exceptions
 
+__all__ = [
+	'NoResultsError',
+	'ParseError',
+	'QueryThrottleError',
+]
+
 
 ### CONSTANTS & DEFINES ###
 
 ### IMPLEMENTATION ###
 
-class NoResults (exceptions.ValueError):
+class NoResultsError (exceptions.ValueError):
 	"""
 	Thrown when parsing results with no results.
 	"""
 	
-	def __init__ (self, timeout=5.0, limits=None):
+	def __init__ (self, msg):
 		"""
 		C'tor.
 		"""
-		BaseWebquery.__init__ (self, root_url=XISBN_ROOTURL, timeout=5.0,
-			limits=None)
+		exceptions.ValueError (self, msg)
 		
-	def query_mdata_by_isbn (self, isbn, fmt='xml'):
-		"""
-		Return publication data based on ISBN.
-		
-		:Parameters:
-			isbn : string
-				An ISBN-10 or ISBN-13.
-				
-		:Returns:
-			Publication data in Xisbn XML format.
-		
-		"""
-		isbn = impl.normalize_isbn (isbn)
-		sub_url = '%(isbn)s?method=getMetadata&format=xml&fl=*' % {'isbn': isbn}
-		return self.query (sub_url)
 
-	def isbn10_to_isbn13 (self, isbn, fmt='xml'):
-		isbn = impl.normalize_isbn (isbn)
-		sub_url = '%(isbn)s?method=to13&format=xml' % {'isbn': isbn}
+class ParseError (exceptions.ValueError):
+	"""
+	Thrown when parsing webservice formats.
+	"""
+	
+	def __init__ (self, msg):
+		"""
+		C'tor.
+		"""
+		exceptions.ValueError (self, msg)
 		
+
+class QueryThrottleError (exceptions.RuntimeError):
+	"""
+	An exception to throw when a query limit has been exceeded.
+	
+	It serves little purpose except to distinguish failures caused by exceeding
+	query limits.
+	
+	"""
+	def __init__ (self, msg=None):
+		msg = msg or "query limit exceeded"
+		RuntimeError.__init__ (self, msg)
+
+
 
 ### TEST & DEBUG ###
 

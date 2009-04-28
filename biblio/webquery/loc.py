@@ -32,7 +32,7 @@ class LocQuery (BaseWebquery):
 		BaseWebquery.__init__ (self, root_url=root_url,timeout=timeout,
 			limits=limits)
 		
-	def query_mdata_by_isbn (self, isbn, format='MODS'):
+	def query_bibdata_by_isbn (self, isbn, format='MODS'):
 		"""
 		Return the metadata for a publication specified by ISBN.
 		"""

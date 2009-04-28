@@ -13,6 +13,9 @@ __docformat__ = 'restructuredtext en'
 import time
 from exceptions import ValueError, RuntimeError
 
+import impl
+import errors
+
 
 ### CONSTANTS & DEFINES ###
 
@@ -22,20 +25,7 @@ FAIL_AND_WAIT = 'WAIT'
 
 ### IMPLEMENTATION ###
 
-class QueryThrottleError (RuntimeError):
-	"""
-	An exception to throw when a query limit has been exceeded.
-	
-	It serves little purpose except to distinguish failures caused by exceeding
-	query limits.
-	
-	"""
-	def __init__ (self, msg=None):
-		msg = msg or "query limit exceeded"
-		RuntimeError.__init__ (self, msg)
-		
-
-class BaseQueryThrottle (object):
+class BaseQueryThrottle (impl.ReprObj):
 	"""
 	A limit upon query usage. 
 	
@@ -48,6 +38,12 @@ class BaseQueryThrottle (object):
 	
 	"""
 	# TODO: introduce special handlers for various failure actions?
+	
+	_repr_fields = [
+		'fail_action',
+		'wait_duration',
+	]
+	
 	def __init__ (self, fail_action=None, wait_duration=1.0):
 		"""
 		Ctor, allowing the polling period and failure behaviour to be set.
@@ -79,7 +75,7 @@ class BaseQueryThrottle (object):
 			self.log_success (wquery)	
 		else:
 			if (self.fail_action == FAIL_AND_RAISE):
-				raise QueryThrottleError()
+				raise errors.QueryThrottleError()
 			elif (self.fail_action == FAIL_AND_WAIT):
 				time.sleep (self.wait_duration)
 				while (not self.within_limit (wquery)):

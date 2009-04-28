@@ -13,6 +13,19 @@ __docformat__ = 'restructuredtext en'
 
 ### IMPORTS ###
 
+try: 
+	from xml.etree import ElementTree
+except:
+	from elementtree import ElementTree
+
+__all__ = [
+	'ElementTree',
+	'ReprObj',
+	'normalize_isbn',
+	'assert_or_raise',
+]
+
+
 ### CONSTANTS & DEFINES ###
 
 ### IMPLEMENTATION ###
@@ -43,6 +56,14 @@ def normalize_isbn (isbn):
 	"""
 	return isbn.replace (' ', '').replace ('-', '').lower().strip()
 
+
+def assert_or_raise (cond, error_cls, error_msg=None):
+	if (not cond):
+		if error_msg:
+			error = error_cls (error_msg)
+		else:
+			error = error_cls()
+		raise error
 
 
 ### TEST & DEBUG ###

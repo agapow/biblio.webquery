@@ -15,12 +15,14 @@ __docformat__ = 'restructuredtext en'
 import socket
 from urllib import urlopen, quote
 
+import impl
+
 
 ### CONSTANTS & DEFINES ###
 
 ### IMPLEMENTATION ###
 
-class BaseWebquery (object):
+class BaseWebquery (impl.ReprObj):
 	"""
 	A base class for querying webservices.
 	
@@ -29,6 +31,12 @@ class BaseWebquery (object):
 	the services provided here will probably expand.
 	
 	"""
+	
+	_repr_fields = [
+		'root_url',
+		'timeout',
+		'limits',
+	]
 	
 	def __init__ (self, root_url, timeout=5.0, limits=[]):
 		"""
