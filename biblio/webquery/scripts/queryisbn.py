@@ -4,6 +4,9 @@
 Retreive bibliographic information for a given ISBN.
 
 """
+# TODO: throttle parameter?
+# TODO: Amazon query?
+# TODO: output in other formats?
 
 __docformat__ = 'restructuredtext en'
 
@@ -25,6 +28,26 @@ except:
 
 ### CONSTANTS & DEFINES ###
 
+WEBSERVICES = [
+	{
+		'id':      'xisbn', 
+		'title':   'WorldCat xISBN',
+		'ctor':    'XisbnQuery',
+	},
+	{
+		'id':      'isbndb', 
+		'title':   'ISBNdb',
+		'ctor':    'IsbndbQuery',
+	},
+	{
+		'id':      'loc', 
+		'title':   'Library of Congress',
+		'ctor':    'LocQuery',
+	},
+]
+DEFAULT_WEBSERVICE = WEBSERVICES[0]
+WEBSERVICE_LOOKUP = dict ([(s['id'], s) for s in WEBSERVICES])
+
 _DEV_MODE = True
 
 
@@ -34,44 +57,47 @@ def parse_args():
 	# Construct the option parser.
 	usage = '%prog [options] ISBNs ...'
 	version = "version %s" %  __version__	
-	epilog='Each ISBN must be 10 or 13 character ISBNs. ' \
-		'Hyphens are permitted, spaces are not. Case is insensitive.'
+	epilog='',
 	optparser = OptionParser (usage=usage, version=version, epilog=epilog)
 	
-	optparser.add_option ('--input-format', '-i',
-		dest="input_format",
-		help='''The format of the input biosequence files. If not supplied, this will be inferred from the extension of the files.''',
-		metavar='FORMAT',
+	optparser.add_option ('--service', '-s',
+		dest='webservice',
+		help="The webservice to query. By default it is '%s' (%s)." % (
+			DEFAULT_WEBSERVICE['title'], DEFAULT_WEBSERVICE['id']) ,
+		metavar='WEBSERVICE',
+		default=DEFAULT_WEBSERVICE['id'],
 	)
-			
-	optparser.add_option ('--output-extension', '-e',
-		dest="output_extension",
-		help='''The extension of the output biosequence files. If not supplied, this will be inferred from the output format.''',
-		metavar='EXTENSION',
-	)
+	
+	optparser.add_option ('--key', '-k',
+		dest="service_key",
+		help='''The access key for the webservice, if one is required.''',
+		metavar='KEY',
+		default=None,
+	)	
 	
 	optparser.add_option ('--debug', '-d',
 		dest="debug",
 		action='store_true',
-		help='''In the event of errors, a full traceback will be issued, not just the error message.''',
+		help='For errors, issue a full traceback instead of just a message.',
 	)
 			
-	#optparser.add_option ('--verbose', '-v',
-	#	 dest="verbose",
-	#	 help='''How much output to generate.''')
 			
-	options, pargs = optparser.parse_args()
+	options, isbns = optparser.parse_args()
 	
-	if (len (pargs) < 1):
-		optparser.error ('No output format specified')
-	out_fmt = pargs[0].lower()
-	if (out_fmt not in KNOWN_FMTS):
-		optparser.error ("unknown output format '%s'" % out_fmt)
-	infiles = pargs[1:]
-	if (not infiles):
-		optparser.error ('No input files specified')
+	if (not isbns):
+		optparser.error ('No ISBNs specified')
+	serv = WEBSERVICE_LOOKUP.get (options.webservice, None)
+	if (not serv):
+		optparser.error ("Unrecognised webservice '%s'" % options.webservice)
+	if (isinstance (serv, BaseKeyedWebQuery)):
+		if (not options.service_key):
+			optparser.error ("%s webservice requires access key" % serv['title'])
+	else:
+		if (options.service_key):
+			optparser.error ("%s webservice does not require access key" %
+				serv['title'])
 	
-	return out_fmt, infiles, options
+	return isbns, options
 
 
 def main():

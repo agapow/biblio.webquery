@@ -56,6 +56,20 @@ class BaseWebquery (impl.ReprObj):
 		return urlopen (full_url).read()
 
 
+class BaseKeyedWebQuery (BaseWebquery):
+	"""
+	A Webquery that requires an access key.
+	"""
+	def __init__ (self, root_url, key, timeout=5.0, limits=[]):
+		"""
+		Ctor, allowing the setting of a webservice access key.
+		"""
+		BaseWebquery.__init__ (self, root_url=root_url, timeout=timeout,
+			limits=limits)
+		self.key = key
+			
+
+	
 ### TEST & DEBUG ###
 
 def _doctest ():
