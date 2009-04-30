@@ -15,18 +15,6 @@ from biblio.webquery import querythrottle
 
 ### TESTS ###
 
-def test_querythrottleerror():
-	# just see it gives msg correctly
-	err = querythrottle.QueryThrottleError ('my msg')
-	assert (str (err) == 'my msg')
-	try:
-		raise err
-	except querythrottle.QueryThrottleError, ex:
-		assert (str (err) == 'my msg')
-	except:
-		assert (False), "error should be caught elsewhere"
-
-
 def test_waitonfail():
 	# use WaitNSecondsThrottle to test fail behaviour
 	throttle = querythrottle.WaitNSecondsThrottle (0.3)
@@ -60,15 +48,17 @@ def test_raiseonfail():
 
 def test_waitnsecondsthrottle():
 	# check timing works
-	throttle = querythrottle.WaitNSecondsThrottle (0.3)
+	throttle = querythrottle.WaitNSecondsThrottle (0.4)
 	# should immediately be okay
 	assert (throttle.within_limit (None))
 	throttle.log_success (None)
-	# should be locked down and return false for rest of period
+	# should be locked down and return false just after success
 	assert (not throttle.within_limit (None))
 	time.sleep (0.2)
+	# shiould still be false, as still within limit
 	assert (not throttle.within_limit (None))
-	time.sleep (0.1)
+	time.sleep (0.3)
+	# should have reset by now
 	assert (throttle.within_limit (None))
 
 

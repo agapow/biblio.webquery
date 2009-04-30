@@ -28,7 +28,6 @@ DEFAULT_NAME_FMT = '%(auth)s %(year)s %(title)s %(isbn)s'
 SERVICE_LIST = [
 	#abbrev       module
 	['loc',        'loc',         'Library of Congress'],
-	['worldcat',   'worldcat',   'WorldCat'],
 	['isbndb',     'isbndb',     'ISBNdb'],
 	# 'amazon', 'amazon'
 ]

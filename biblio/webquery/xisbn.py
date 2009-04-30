@@ -70,9 +70,9 @@ class XisbnQuery (BaseWebquery):
 		
 		
 	
-def xisbn_metadata_xml_to_bibrecord (xml_txt):
+def xisbn_pytxt_to_bibrecord (pytxt):
 	"""
-	Translate the XML returned by xISBN to a BibRecord.
+	Translate the Python text returned by xISBN to a BibRecord.
 	
 	:Parameters:
 		mdata_xml : string
@@ -85,8 +85,60 @@ def xisbn_metadata_xml_to_bibrecord (xml_txt):
 		
 	"""
 	## Main:
-	# capture in etree and find record node
-	tree = ElementTree.fromstring (mdata_xml)
+	# convert to python structures
+	xisbn_dict = eval (pytxt)
+	# parse reply
+	status = xisbn_dict.get ('stat', 'ok')
+	assert (status == 'ok'), "reponse status was bad (%s)" % status
+	# parse individual records
+	bibrecs = []
+	for entry in xisbn_dict['list']:
+		new_bib = BibRecord()
+		new_bib.publisher = entry.get ('publisher', '')
+		new_bib.lang = entry.get ('lang', '')
+		new_bib.pubcity = entry.get ('city', '')
+		new_bib.author = entry.get ('author', '')
+		new_bib.pubyear = entry.get ('year', '')
+		new_bib.key = entry.get ('isbn', [''])[0]
+		new_bib.title = entry.get ('title', '')
+		bibrecs.append (new_bib)
+	## Postconditions & return:
+	return fields
+
+
+def xisbn_pytxt_to_dicts (xml_txt):
+	"""
+	Translate the python text returned by xISBN to a series of dicts.
+	
+	:Parameters:
+		mdata_xml : string
+			An Xisbn record in XML.
+			
+	:Returns:
+		A dictionary with keys "year", "title" and "authors" parsed from the 
+		Xisbn record. If a field is not present or parseable, neither is
+		the key.
+		
+	"""
+	## Preconditions & preparation:
+	# find root and check status
+	root = ElementTree.fromstring (xml_txt)
+	print xml_txt
+	print root.tag
+	assert (root.tag == '{http://worldcat.org/xid/isbn/}rsp'), \
+		"expected xISBN XML document to have root 'rsp' not '%s'" % root.tag
+	print root.attrib['stat']
+	assert (root.attrib['stat'] == 'ok'), "webservice returned '%s'" % root.attrib['stat']
+	## Main:
+	isbn_dicts = []
+	for child in root:
+		rec_dict = {}
+		rec_dict['isbn'] = child.text
+		
+
+		isbn_dicts.append (rec_dict)
+	return isbn_dicts
+
 	isbn_elem = tree.find ('isbn')
 	# parse individual fields
 	fields = {}
@@ -102,65 +154,6 @@ def xisbn_metadata_xml_to_bibrecord (xml_txt):
 			fields['authors'] = parse_authors (author)
 	## Postconditions & return:
 	return fields
-
-
-def parse_xisbn_authors (auth_str):
-	"""
-	Clean up Xisbn author information into a more consistent format.
-
-	:Parameters:
-		auth_str : string
-			The "author" attribute from a Xisbn record in XML.
-	
-	:Returns:
-		A list of the authors in "reverse" format, e.g. "['Smith, A. B.',
-		'Jones, X. Y.']"
-
-	Xisbn data can be irregularly formatted, unpredictably including
-	ancillary information. This function attempts to cleans up the author field
-	into a list of consistent author names.
-	
-	For example::
-
-		>>> parse_authors ("Leonard Richardson and Sam Ruby.")
-		['Richardson, Leonard', 'Ruby, Sam']
-		>>> parse_authors ("Ann Thomson.")
-		['Thomson, Ann']
-		>>> parse_authors ("Stephen P. Schoenberger, Bali Pulendran, editors.")
-		['Schoenberger, Stephen P.', 'Pulendran, Bali']
-		>>> parse_authors ("Madonna")
-		['Madonna']
-
-	"""
-	# TODO: Xisbn authors fields are often appended with extra information
-	# like "with a foreword by" etc. Largely these are separated from the
-	# author list by semi-colons and so should be easy to strip off.
-	
-	## Preconditions & preparation:
-	# clean up string and return trivial cases 
-	auth_str = auth_str.strip()
-	if (not auth_str):
-		return []
-	# strip extraneous and replace 'and'
-	for pat in STRIP_PATS:
-		auth_str = pat.sub ('', auth_str)
-	auth_str = AND_PAT.sub (', ', auth_str)
-	## Main:
-	auth_list = auth_str.split (', ')
-	for i in range (len (auth_list)):
-		single_auth = auth_list[i].strip()
-		single_auth = single_auth.split (' ')
-		family_name = single_auth[-1]
-		if (family_name.endswith ('.')):
-			family_name = family_name[:-1]
-		given_names = ' '.join (single_auth[:-1])
-		reverse_name = family_name
-		if (given_names):
-			reverse_name += ', ' + given_names
-		auth_list[i] = reverse_name
-	return auth_list
-
-
 
 
 

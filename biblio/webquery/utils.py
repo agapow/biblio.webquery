@@ -54,13 +54,13 @@ def parse_name (name_str):
 	
 	For example::
 
-		>>> parse_authors ("Leonard Richardson and Sam Ruby.")
+		>>> parse_name ("Leonard Richardson and Sam Ruby.")
 		['Richardson, Leonard', 'Ruby, Sam']
-		>>> parse_authors ("Ann Thomson.")
+		>>> parse_name ("Ann Thomson.")
 		['Thomson, Ann']
-		>>> parse_authors ("Stephen P. Schoenberger, Bali Pulendran, editors.")
+		>>> parse_name ("Stephen P. Schoenberger, Bali Pulendran, editors.")
 		['Schoenberger, Stephen P.', 'Pulendran, Bali']
-		>>> parse_authors ("Madonna")
+		>>> parse_name ("Madonna")
 		['Madonna']
 
 	"""

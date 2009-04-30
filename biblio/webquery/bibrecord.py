@@ -30,7 +30,7 @@ class BibRecord (impl.ReprObj):
 	# TODO: maybe need url, doi, language, ISBN/ISSN, volume, number, pages,
 	# month, booktitle, pubcity, address
 	_repr_fields = [
-		'bibkey',
+		'id',
 		'pubtype',
 		'title',
 		'authors',
@@ -41,12 +41,13 @@ class BibRecord (impl.ReprObj):
 		'publisher',
 		'journal',
 		'note',
+		'ext_identifiers',
 	]
 	def __init__ (self):
 		"""
 		C'tor.
 		"""
-		self.bibkey = u''
+		self.id = u''
 		self.pubtype = u''
 		self.title = u''
 		self.authors = []
@@ -57,6 +58,7 @@ class BibRecord (impl.ReprObj):
 		self.publisher = u''
 		self.journal = u''
 		self.note = u''
+		self.ext_identifiers = {}}
 
 
 

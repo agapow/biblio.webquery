@@ -18,7 +18,7 @@ from os import path
 from optparse import OptionParser
 from exceptions import BaseException
 
-from Bio import SeqIO
+from config import *
 
 try:
 	from biblio.webquery import __version__
@@ -27,26 +27,6 @@ except:
 	
 
 ### CONSTANTS & DEFINES ###
-
-WEBSERVICES = [
-	{
-		'id':      'xisbn', 
-		'title':   'WorldCat xISBN',
-		'ctor':    'XisbnQuery',
-	},
-	{
-		'id':      'isbndb', 
-		'title':   'ISBNdb',
-		'ctor':    'IsbndbQuery',
-	},
-	{
-		'id':      'loc', 
-		'title':   'Library of Congress',
-		'ctor':    'LocQuery',
-	},
-]
-DEFAULT_WEBSERVICE = WEBSERVICES[0]
-WEBSERVICE_LOOKUP = dict ([(s['id'], s) for s in WEBSERVICES])
 
 _DEV_MODE = True
 

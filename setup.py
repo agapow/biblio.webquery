@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 import os
 
-from biblio.webquery import __version __
+from biblio.webquery import __version__
 
 setup (
 	name='biblio.webquery',

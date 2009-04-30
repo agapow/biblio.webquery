@@ -6,7 +6,6 @@ Tests for biblio.webquery.worldcat, using nose.
 
 ### IMPORTS ###
 
-from biblio.webquery import worldcat
 
 
 ### CONSTANTS & DEFINES ###

@@ -11,7 +11,7 @@ __docformat__ = 'restructuredtext en'
 
 ### CONSTANTS & DEFINES ###
 
-__version__ = '0.2b'
+__version__ = '0.3'
 
 
 ### IMPLEMENTATION ###
