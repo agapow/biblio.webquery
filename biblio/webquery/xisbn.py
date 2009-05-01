@@ -13,8 +13,14 @@ __docformat__ = 'restructuredtext en'
 
 import re
 
-from impl import ElementTree
+from impl normalize_isbn
 from basewebquery import BaseWebquery
+from bibrecord import BibRecord
+
+__all__ = [
+	'XisbnQuery',
+	'xisbn_py_to_bibrecord',
+]
 
 
 ### CONSTANTS & DEFINES ###
@@ -46,8 +52,17 @@ class XisbnQuery (BaseWebquery):
 		"""
 		BaseWebquery.__init__ (self, root_url=XISBN_ROOTURL, timeout=5.0,
 			limits=None)
+
+	def query_service (self, isbn, method, format, fields=['*']):
+		sub_url = "%(isbn)s?method=%(mthd)s&format=%(fmt)s&fl=%(flds)s" % {
+			'mthd': method,
+			'fmt': format,
+			'isbn': normalize_isbn (isbn),
+			'flds': ','.join (fields),
+		}
+		return self.query (sub_url)
 		
-	def query_bibdata_by_isbn (self, isbn, fmt='xml'):
+	def query_bibdata_by_isbn (self, isbn, fmt='bibrecord'):
 		"""
 		Return publication data based on ISBN.
 		
@@ -59,18 +74,32 @@ class XisbnQuery (BaseWebquery):
 			Publication data in Xisbn XML format.
 		
 		"""
-		isbn = impl.normalize_isbn (isbn)
-		sub_url = '%(isbn)s?method=getMetadata&format=xml&fl=*' % {'isbn': isbn}
-		return self.query (sub_url)
+		## Preconditions & preparation:
+		# clean up params, check and select appropriate format
+		fmt_map = {
+			'python':      'python',
+			'xml':         'xml',
+			'bibrecord':   'python',
+		}
+		assert (fmt in fmt_map), \
+			"unrecognised format '%s', must be one of %s" % (fmt, fmt_map.keys())
+		## Main:
+		passed_fmt = fmt_map[fmt]
+		results = self.query_service (isbn=isbn, method='getMetadata',
+			format=passed_fmt)
+		if (fmt == 'bibrecord'):
+			results = xisbn_py_to_bibrecord (results)
+		## Postconditions & return:
+		return results
 
 	def query_isbn10_to_13 (self, isbn, fmt='xml'):
-		isbn = impl.normalize_isbn (isbn)
+		isbn = normalize_isbn (isbn)
 		sub_url = '%(isbn)s?method=to13&format=xml' % {'isbn': isbn}
 		
 		
 		
 	
-def xisbn_pytxt_to_bibrecord (pytxt):
+def xisbn_py_to_bibrecord (pytxt):
 	"""
 	Translate the Python text returned by xISBN to a BibRecord.
 	
@@ -103,57 +132,7 @@ def xisbn_pytxt_to_bibrecord (pytxt):
 		new_bib.title = entry.get ('title', '')
 		bibrecs.append (new_bib)
 	## Postconditions & return:
-	return fields
-
-
-def xisbn_pytxt_to_dicts (xml_txt):
-	"""
-	Translate the python text returned by xISBN to a series of dicts.
-	
-	:Parameters:
-		mdata_xml : string
-			An Xisbn record in XML.
-			
-	:Returns:
-		A dictionary with keys "year", "title" and "authors" parsed from the 
-		Xisbn record. If a field is not present or parseable, neither is
-		the key.
-		
-	"""
-	## Preconditions & preparation:
-	# find root and check status
-	root = ElementTree.fromstring (xml_txt)
-	print xml_txt
-	print root.tag
-	assert (root.tag == '{http://worldcat.org/xid/isbn/}rsp'), \
-		"expected xISBN XML document to have root 'rsp' not '%s'" % root.tag
-	print root.attrib['stat']
-	assert (root.attrib['stat'] == 'ok'), "webservice returned '%s'" % root.attrib['stat']
-	## Main:
-	isbn_dicts = []
-	for child in root:
-		rec_dict = {}
-		rec_dict['isbn'] = child.text
-		
-
-		isbn_dicts.append (rec_dict)
-	return isbn_dicts
-
-	isbn_elem = tree.find ('isbn')
-	# parse individual fields
-	fields = {}
-	if (isbn_elem is not None):
-		year = isbn_elem.get ('year')
-		if (year):
-			fields['year'] = year
-		title = isbn_elem.get ('title')
-		if (title):
-			fields['title'] = parse_title (title)
-		author = isbn_elem.get ('author')
-		if (author):
-			fields['authors'] = parse_authors (author)
-	## Postconditions & return:
-	return fields
+	return bibrecs
 
 
 

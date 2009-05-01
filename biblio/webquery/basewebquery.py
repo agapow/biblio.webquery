@@ -3,7 +3,7 @@
 """
 A base class for querying webservices.
 """
-# TODO: list of possibel apis at http://techessence.info/apis and
+# TODO: list of possible apis at http://techessence.info/apis and
 # http://www.programmableweb.com/apitag/books#
 
 
@@ -44,9 +44,9 @@ class BaseWebquery (impl.ReprObj):
 		"""
 		self.root_url = root_url
 		self.timeout = timeout
-		self.limits = []
-		for ql in list (limits):
-			self.limits.append (ql)
+		self.limits = limits or []
+		#for ql in list (limits):
+		#	self.limits.append (ql)
 
 	def query (self, url):
 		for limit in self.limits:

@@ -1,9 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-Retreive bibliographic information for a given ISBN.
+Rename files as by the ISBN buried in their original name.
 
 """
+# TODO: throttle parameter?
+# TODO: Amazon query?
+# TODO: output in other formats?
 
 __docformat__ = 'restructuredtext en'
 
@@ -15,24 +18,17 @@ from os import path, rename
 from optparse import OptionParser
 from exceptions import BaseException
 
-try:
-	from biblio.webquery import __version__
-except:
-	__version__ = 'unknown'
-	
+from config import *
+from common import *
+
 
 ### CONSTANTS & DEFINES ###
 
-DEFAULT_NAME_FMT = '%(auth)s %(year)s %(title)s %(isbn)s'
-
-SERVICE_LIST = [
-	#abbrev       module
-	['loc',        'loc',         'Library of Congress'],
-	['isbndb',     'isbndb',     'ISBNdb'],
-	# 'amazon', 'amazon'
+ISBN_PATS = [
+	
 ]
-ALL_SERVICES = [s[0] for s in SERVICE_LIST]
-DEFAULT_SERVICE = ALL_SERVICES[0]
+
+ISBN_RE = [re.compile (p, re.IGNORECASE) for p in ISBN_PATS]
 
 _DEV_MODE = True
 
@@ -42,42 +38,81 @@ _DEV_MODE = True
 def parse_args():
 	# Construct the option parser.
 	usage = '%prog [options] FILES ...'
-	version = "version %s" %  __version__	
-	epilog='Each ISBN must be 10 or 13 character ISBNs. ' \
-		'Hyphens are permitted, spaces are not. Case is insensitive.'
+	version = "version %s" %  script_version
+	epilog='',path.split (fpath)
 	optparser = OptionParser (usage=usage, version=version, epilog=epilog)
+	add_shared_options (optparser)
+
+	# parse and check args
+	options, fpaths = optparser.parse_args()
 	
-	optparser.add_option ('--query', '-q',
-		dest="query_services",
-		type='string',
-		action='append',
-		help='''Which webservices to query.''',
-		metavar='SERVICE',
-	)
-			
-	optparser.add_option ('--name', '-n',
-		dest="name_fmt",
-		help="The layout for the new name. By default it will be '%s'" % \
-			DEFAULT_NAME_FMT,
-		metavar='FORMAT',
-		default=DEFAULT_NAME_FMT,
-	)
+	if (not fpaths):
+		optparser.error ('No files specified')
+	check_shared_options (optparser)
 	
-	optparser.add_option ('--debug', '-d',
-		dest="debug",
-		action='store_true',
-		help='''In the event of errors, a full traceback will be issued, not just the error message.''',
-	)
+	## Postconditions & return:
+	return fpaths, options
+
+
+def base_ext_from_path (fpath):
+	"""
+	Return a files base name and extension from it's path.
+	"""
+	fdir, fname = path.split (fpath)
+	return path.splitext (fname)
+
+
+def rename_file (oldpath, newname):
+	"""
+	Rename a file, while keeping it in the same location.
+	"""
+	fdir, fname = path.split (fpath)
+	newpath = path.join (fdir, newname)
+	rename (oldpath, newpath)
+
+
+def extract_isbn_from_filename (fname):
+
+
+def main():
+	fpath_list, options = parse_args()
+	try:
+		webqry = construct_webquery (options.webservice, options.service_key)
+		for fpath in fpath_list:
+			print '%s:' % fpath
+			base, ext = base_ext_from_path (fpath)
+			print '%s %s' % (base, ext)
+			isbn = extract_isbn_from_filename (base)
 			
-	#optparser.add_option ('--verbose', '-v',
-	#	 dest="verbose",
-	#	 help='''How much output to generate.''')
-			
-	options, infiles = optparser.parse_args()
-	if (not infiles):
-		optparser.error ('No input files specified')
+			rec_list = webqry.query_bibdata_by_isbn (isbn, fmt='bibrecord')
+			if (rec_list):
+				for f in PRINT_FIELDS:
+					if (getattr (rec_list[0], f)):
+						print '   %s: %s' % (f, getattr (rec_list[0], f))
+			else:
+				print '   No results'
+	except BaseException, err:
+		if (_DEV_MODE or options.debug):
+			raise
+		else:
+			sys.exit (err)
+	except:
+		if (_DEV_MODE or option.debug):
+			raise
+		else:
+			sys.exit ("An unknown error occurred.")
 	
-	return infiles, options
+	
+### TEST & DEBUG ###
+
+### MAIN ###
+
+if __name__ == '__main__':
+	main()
+	
+
+### END ######################################################################
+
 
 
 def main():

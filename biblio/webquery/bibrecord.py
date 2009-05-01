@@ -40,7 +40,7 @@ class BibRecord (impl.ReprObj):
 		'keywords',
 		'publisher',
 		'journal',
-		'note',
+		'notes',
 		'ext_identifiers',
 	]
 	def __init__ (self):
@@ -57,8 +57,8 @@ class BibRecord (impl.ReprObj):
 		self.keywords = []
 		self.publisher = u''
 		self.journal = u''
-		self.note = u''
-		self.ext_identifiers = {}}
+		self.notes = u''
+		self.ext_identifiers = {}
 
 
 

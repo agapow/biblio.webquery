@@ -10,10 +10,19 @@ __docformat__ = 'restructuredtext en'
 
 ### IMPORTS ###
 
+from biblio.webquery.xisbn import XisbnQuery
+from biblio.webquery.loc import LocQuery
+from biblio.webquery.isbndb import IsbndbQuery
+
 try:
 	from biblio.webquery import __version__
 except:
 	__version__ = 'unknown'
+
+__all__ = [
+	'WEBSERVICE_LOOKUP',
+	'DEFAULT_WEBSERVICE',
+]
 	
 
 ### CONSTANTS & DEFINES ###
@@ -22,17 +31,17 @@ WEBSERVICES = [
 	{
 		'id':      'xisbn', 
 		'title':   'WorldCat xISBN',
-		'ctor':    'XisbnQuery',
+		'ctor':    XisbnQuery,
 	},
 	{
 		'id':      'isbndb', 
 		'title':   'ISBNdb',
-		'ctor':    'IsbndbQuery',
+		'ctor':    IsbndbQuery,
 	},
 	{
 		'id':      'loc', 
 		'title':   'Library of Congress',
-		'ctor':    'LocQuery',
+		'ctor':    LocQuery,
 	},
 ]
 DEFAULT_WEBSERVICE = WEBSERVICES[0]

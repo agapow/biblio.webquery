@@ -21,7 +21,7 @@ ISBNDB_KEY = 'OPNH8HG2'
 
 FORMATS = [
 	'isbndb-xml',
-	'bibrecord',
+	'bibrecord',extract_isbn_from_filename
 ]
 
 
