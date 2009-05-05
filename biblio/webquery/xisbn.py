@@ -30,15 +30,15 @@ __all__ = [
 XISBN_ROOTURL = 'http://xisbn.worldcat.org/webservices/xid/isbn/'
 
 FORMATS = [
-	'raw',
 	'xml',
-#	'html',
-#	'json',
-#	'python',
-#	'ruby',
-#	'php',
-#	'csv',
-#	'txt',
+	'html',
+	'json',
+	'python',
+	'ruby',
+	'php',
+	'csv',
+	'txt',
+	'bibrecord',
 ]
 
 
@@ -54,6 +54,30 @@ class XisbnQuery (BaseWebquery):
 			limits=None)
 
 	def query_service (self, isbn, method, format, fields=['*']):
+		"""
+		A generalised query for xISBN.
+		
+		:Parameters:
+			isbn : string
+				A normalised ISBN-10 or -13.
+			method : string
+				The request type to make of xISBN.
+			format : string
+				The form for the response.
+			fields : iterable
+				A list of the fields to include in the response.
+		
+		:Returns:
+			The response received from the service.
+		
+		This serves a general way of accessing all the methods available for
+		xISBN. It also normalises the ISBn to a suitable form for submission.
+		
+		"""
+		## Preconditions & preparation:
+		assert (format in FORMATS), \
+			"unrecognised format '%s', must be one of %s" % (format, FORMATS)
+		## Main:
 		sub_url = "%(isbn)s?method=%(mthd)s&format=%(fmt)s&fl=%(flds)s" % {
 			'mthd': method,
 			'fmt': format,
@@ -62,7 +86,7 @@ class XisbnQuery (BaseWebquery):
 		}
 		return self.send_request (sub_url)
 		
-	def query_bibdata_by_isbn (self, isbn, fmt='bibrecord'):
+	def query_bibdata_by_isbn (self, isbn, format='bibrecord'):
 		"""
 		Return publication data based on ISBN.
 		
@@ -75,55 +99,127 @@ class XisbnQuery (BaseWebquery):
 		
 		"""
 		## Preconditions & preparation:
-		# clean up params, check and select appropriate format
+		# select appropriate format
 		fmt_map = {
-			'python':      'python',
-			'xml':         'xml',
-			'bibrecord':   'python',
+			'bibrecord': 'python',
 		}
-		assert (fmt in fmt_map), \
-			"unrecognised format '%s', must be one of %s" % (fmt, fmt_map.keys())
+		passed_fmt = fmt_map.get (format, format)
 		## Main:
-		passed_fmt = fmt_map[fmt]
 		results = self.query_service (isbn=isbn, method='getMetadata',
 			format=passed_fmt)
-		if (fmt == 'bibrecord'):
+		if (format == 'bibrecord'):
 			results = xisbn_py_to_bibrecord (results)
 		## Postconditions & return:
 		return results
-
-	def query_isbn10_to_13 (self, isbn, fmt='xml'):
-		isbn = normalize_isbn (isbn)
-		sub_url = '%(isbn)s?method=to13&format=xml' % {'isbn': isbn}
-		
 	
-def xisbn_py_to_bibrecord (pytxt):
+	def query_editions_by_isbn (self, isbn, format='xml'):
+		"""
+		Return the editions associated with an ISBN.
+		
+		:Parameters:
+			isbn : string
+				An ISBN-10 or ISBN-13.
+			fmt : string
+				See `query_service`. 
+				
+		:Returns:
+			Publication data in Xisbn XML format.
+		
+		"""
+		## Main:
+		return = self.query_service (isbn=isbn, method='getEditions',
+			format=format)
+	
+	def query_isbn (self, isbn, method, format='string'):
+		"""
+		A generalised method for ISBN queries that return ISBNs.
+		
+		This allows functionality to be shared among the ISBN conversion and
+		checking methods.
+		
+		"""
+		## Preconditions & preparation:
+		# check and select appropriate format
+		fmt_map = {
+			'string': 'python',
+		}
+		passed_fmt = fmt_map.get (format, format)
+		## Main:
+		results = self.query_service (isbn=isbn, method=method,
+			format=passed_fmt)
+		if (format == 'string'):
+			results = xisbn_py_to_list (results)
+			results = [d['isbn'] for d in results]
+		## Postconditions & return:
+		return results
+	
+	def query_isbn10_to_13 (self, isbn, format='string'):
+		## Main:
+		return self.query_isbn (isbn=isbn, method='to13',
+			format=format)
+	
+	def query_isbn13_to_10 (self, isbn, format='string'):
+		## Main:
+		return self.query_isbn (isbn=isbn, method='to10',
+			format=format)
+
+	def query_fix_isbn_csum (self, isbn, format='string'):
+		## Main:
+		return self.query_isbn (isbn=isbn, method='fixChecksum',
+			format=format)
+
+	def query_hyphenate_isbn (self, isbn, format='string'):
+		## Main:
+		return self.query_isbn (isbn=isbn, method='hyphen',
+			format=format)
+
+
+
+def xisbn_py_to_list (pytxt):
 	"""
-	Translate the Python text returned by xISBN to a BibRecord.
+	Translate the Python text returned by xISBN to a list of dicts.
 	
 	:Parameters:
-		mdata_xml : string
-			An Xisbn record in XML.
+		pytxt : string
+			An Xisbn record in Python.
 			
 	:Returns:
-		A dictionary with keys "year", "title" and "authors" parsed from the 
-		Xisbn record. If a field is not present or parseable, neither is
-		the key.
+		A list with a dictionary for each record.
 		
 	"""
 	## Main:
 	# convert to python structures
 	xisbn_dict = eval (pytxt)
-	# parse reply
+	# parse reply status - if the query term was unknown (but valid) return
+	# a empty list for no records
 	status = xisbn_dict.get ('stat', 'ok')
 	if (status != 'ok'):
 		if (status == 'unknownId'):
 			return []
 		else:
 			raise QueryError ("response status was bad (%s)" % status)
+	## Postconditions & return:
+	return xisbn_dict['list']
+
+	
+def xisbn_py_to_bibrecord (pytxt):
+	"""
+	Translate the Python text returned by xISBN to a series of BibRecords.
+	
+	:Parameters:
+		pytxt : string
+			An Xisbn record in Python.
+			
+	:Returns:
+		A list of BibRecords.
+		
+	"""
+	## Main:
+	# convert to python structures
+	records = xisbn_py_to_list (pytxt)
 	# parse individual records
 	bibrecs = []
-	for entry in xisbn_dict['list']:
+	for entry in records:
 		new_bib = BibRecord()
 		new_bib.publisher = entry.get ('publisher', '')
 		new_bib.lang = entry.get ('lang', '')

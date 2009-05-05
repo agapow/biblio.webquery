@@ -53,6 +53,13 @@ PUBLISHER_RES = [re.compile (p, flags=re.IGNORECASE+re.UNICODE) for p in
 
 ### IMPLEMENTATION ###
 
+def normalize_isbn (isbn):
+	"""
+	Remove formatting from an ISBN, making it suitable for web-queries.
+	"""
+	return isbn.replace (' ', '').replace ('-', '').lower().strip()
+
+
 def parse_single_name (name_str):
 	"""
 	Clean up an indivdual name into a more consistent format.
@@ -187,6 +194,20 @@ def parse_editing_info (name_str):
 		
 def parse_publisher (pub_str):
 	"""
+	Parse a string of publisher information.
+
+	:Parameters:
+		pub_str : string
+			text giving publisher details.
+		
+	:Returns:
+		A tuple of strings, being (<publisher>, <city of publication>,
+		<year of publication>). If no value is available, an empty string
+		returned.
+		
+	As with author names, publication details are often inconsistently set out,
+	even in bibliographic data. This function attempts to parse out and
+	normalise the details.
 	
 	For example::
 	
@@ -206,7 +227,7 @@ def parse_publisher (pub_str):
 			fields = ['pub', 'city', 'year']
 			match_vals = match.groupdict (None)
 			return tuple ([match_vals.get (f, '').strip() for f in fields])
-	return None, None, None
+	return '', '', ''
 
 
 

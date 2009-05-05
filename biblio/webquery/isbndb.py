@@ -23,11 +23,11 @@ __all__ = [
 
 ### CONSTANTS & DEFINES ###
 
-ISBNDB_ROOTURL = 'http://isbndb.com/api/books.xml?access_key=%(key)s'
+ISBNDB_ROOTURL = 'http://isbndb.com/api/books.xml?access_key=%(key)s&'
 ISBNDB_KEY = 'OPNH8HG2'
 
 FORMATS = [
-	'isbndb-xml',
+	'xml',
 	'bibrecord',
 ]
 
@@ -40,11 +40,44 @@ class IsbndbQuery (BaseKeyedWebQuery):
 		"""
 		C'tor, accepting an access key.
 		"""
-		root_url = ISBNDB_ROOTURL % {'key': key}
 		BaseKeyedWebQuery.__init__ (self, root_url=root_url, timeout=timeout,
 			limits=limits)
+
+	def query_service (self, index, value, results):
+		"""
+		A generalised query for ISBNdb.
 		
-	def query_bibdata_by_isbn (self, isbn, fmt='bibrecord'):
+		:Parameters:
+			index : string
+				The index to search in ISBNdb.
+			value : string
+				The value to search for in the index..
+			results : iterable
+				A list of the data to include in the response.
+		
+		:Returns:
+			The response received from the service.
+		
+		This serves a general way of accessing all the methods available for
+		ISBNdb. It also normalises the ISBN to a suitable form for submission.
+		Note that it is probably possible to form a bad query with the wrong
+		combination of parameters.
+		
+		"""
+		## Preconditions & preparation:
+		if (index == 'isbn'):
+			value = normalize_isbn (value)
+		## Main:
+		sub_url = '&index1=%(indx)s&value1=%(val)s' % {
+			'indx': index,
+			'val': value,
+		}
+		if (results):
+			res_str = ','.join (list(results))
+			sub_url += '&' + res_str
+		return self.send_request (sub_url)
+		
+	def query_bibdata_by_isbn (self, isbn, format='bibrecord'):
 		"""
 		Return publication data based on ISBN.
 		
@@ -52,25 +85,62 @@ class IsbndbQuery (BaseKeyedWebQuery):
 			isbn : string
 				An ISBN-10 or ISBN-13.
 				
-			fmt : string
+			format : string
 				The desired format for the results.
 				
 		:Returns:
 			Publication data in Xisbn XML format.
 		
 		"""
-		# clean up params, check and select appropriate format
-		fmt_map = {
-			'xml':         'xml',
-			'bibrecord':   'xml',
-		}
-		assert (fmt in fmt_map), \
-			"unrecognised format '%s', must be one of %s" % (fmt, fmt_map.keys())
-		sub_url = '&results=authors,subjects,texts,details&index1=isbn'\
-			'&value1=%(isbn)s' % {'isbn': isbn}
-		results = self.send_request (sub_url)
-		if (fmt is 'bibrecord'):
+		## Preconditions & preparation:
+		# check and select appropriate format
+		assert (format in FORMATS), \
+			"unrecognised format '%s', must be one of %s" % (format, FORMATS)
+		## Main:
+		results = query_service (self, index='isbn', value=isbn, results=[
+			'authors', 'subjects', 'texts', 'details'])
+		if (format is 'bibrecord'):
 			results = isbndb_xml_to_bibrecords (results)
+		## Postconditions & return:
+		return results
+
+	def query_author_by_name (self, name, fields=None):
+		"""
+		Search author data based on name.
+		
+		:Parameters:
+			name : string
+				The name to search for.
+				
+			fields : iterable
+				What result blocks to return..
+				
+		:Returns:
+			Publication data in ISBNdb XML format.
+		
+		"""
+		## Main:
+		results = query_service (self, index='name', value=name, results=fields)
+		## Postconditions & return:
+		return results
+
+	def query_author_by_id (self, auth_id, fields=None):
+		"""
+		Search author data based on ID.
+		
+		:Parameters:
+			auth_id : string
+				The ISBN "person_id" to search for.
+				
+			fields : iterable
+				What result blocks to return..
+				
+		:Returns:
+			Publication data in ISBNdb XML format.
+		
+		"""
+		## Main:
+		results = query_service (self, index='person_id', value=name, results=fields)
 		## Postconditions & return:
 		return results
 
@@ -115,6 +185,7 @@ def isbndb_xml_to_bibrecords (xml_txt):
 		if (pub_elem):
 			newrec.publisher, newrec.city, newrec.year = \
 				parse_publisher (pub_elem.text)
+		bibrecs.append (newrec))
 		print newrec
 	## Postconditions & return:
 	return bibrecs

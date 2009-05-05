@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-Various implementation details and utilities.
+Various (fragile) implementation details and utilities.
 
 Don't reply on these because they may go away.
 
@@ -50,14 +50,10 @@ class ReprObj (object):
 		return str (self)
 
 
-def normalize_isbn (isbn):
-	"""
-	Remove formatting from an ISBN, making it suitable for web-queries.
-	"""
-	return isbn.replace (' ', '').replace ('-', '').lower().strip()
-
-
 def assert_or_raise (cond, error_cls, error_msg=None):
+	"""
+	If a condition is not met, raise a assertion with this message.
+	"""
 	if (not cond):
 		if error_msg:
 			error = error_cls (error_msg)
