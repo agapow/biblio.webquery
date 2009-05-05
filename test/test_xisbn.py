@@ -22,7 +22,7 @@ SIMPLE_ONE_XML = """<?xml version="1.0" encoding="UTF-8"?>
 
 ### TESTS ###
 
-class test_xisbn_xml_to_dicts (object):
+class xtest_xisbn_xml_to_dicts (object):
 	def test_bad_status (self):
 		try:
 			recs = xisbn.xisbn_xml_to_dicts (BAD_STATUS_XML)

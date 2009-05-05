@@ -12,15 +12,24 @@ __docformat__ = 'restructuredtext en'
 
 import re
 
+from bibrecord import PersonalName
+
 
 ### CONSTANTS & DEFINES ###
+
+# patterns for extracting editors names
+EDITOR_PATS = [re.compile (x, flags=re.IGNORECASE+re.UNICODE) for x in
+	[
+		r'^edited by\s+',   # "(edited )by ..."
+		r'\s*, editors\.?$',     # "..., editors"
+		r'^editors,?\s*',        # "editors, ..."        
+	]
+]
 
 # patterns for extracting author info
 STRIP_PATS = [re.compile (x, flags=re.IGNORECASE+re.UNICODE) for x in
 	[
-		r'^((edited )?by\s+)',   # "(edited )by ..."
-		r'\s*, editors\.?$',     # "..., editors"
-		r'^editors,?\s*',        # "editors, ..."
+		r'^by\s+',   # "by ..."
 		r'\s*;\s+with an introduction by .*$',
 		r'^\[\s*',               
 		r'\s*\]$',
@@ -28,17 +37,60 @@ STRIP_PATS = [re.compile (x, flags=re.IGNORECASE+re.UNICODE) for x in
 		r'et[\. ]al\.',          # "et al."
 		r'\[',
 		r'\]',
-		r'\([^\)]+\)',          
+		r'\([^\)]+\)', 
+		r'\s*;.*$',
 	]
 ]
 AND_PAT = re.compile (r'\s+and\s+')
+COLLAPSE_SPACE_RE = re.compile (r'\s+')
 
+PUBLISHER_RES = [re.compile (p, flags=re.IGNORECASE+re.UNICODE) for p in
+	[
+		'^(?P<city>.*)\s*:\s*(?P<pub>.*)\s*,\s*c?(?P<year>\d{4})\.?$',
+		'^(?P<pub>.*)\.?$',
+	]
+]
 
 ### IMPLEMENTATION ###
 
-def parse_name (name_str):
+def parse_single_name (name_str):
 	"""
-	Clean up a name into a more consistent format.
+	Clean up an indivdual name into a more consistent format.
+	"""
+	family = given = other = ''
+	# normalise space
+	name_str = COLLAPSE_SPACE_RE.sub (' ', name_str.strip())
+	# break into parts
+	if (', ' in name_str):
+		# if [family], [given] [other]
+		name_parts = name_str.split (', ', 1)
+		family = name_parts[0].strip()
+		given_other = name_parts[1].split (' ', 1)
+		given = given_other[0]
+		other = given_other[1:]
+	else:
+		# if [given] [other] [family]
+		name_parts = name_str.split (' ')
+		given = name_parts[0]
+		other_family = name_parts[1:]
+		# the 'Madonna' clause
+		if (other_family):
+			family = other_family[-1]
+			other = ' '.join (other_family[:-1])
+	# some tidying up
+	if (family.endswith ('.')):
+		family = family[:-1]
+	# create name
+	name = PersonalName (given)
+	name.family = family or ''
+	name.other = other or ''
+	## Postconditions & return:
+	return name
+	
+			
+def parse_names (name_str):
+	"""
+	Clean up a list of names into a more consistent format.
 
 	:Parameters:
 		name_str : string
@@ -54,15 +106,28 @@ def parse_name (name_str):
 	
 	For example::
 
-		>>> parse_name ("Leonard Richardson and Sam Ruby.")
-		['Richardson, Leonard', 'Ruby, Sam']
-		>>> parse_name ("Ann Thomson.")
-		['Thomson, Ann']
-		>>> parse_name ("Stephen P. Schoenberger, Bali Pulendran, editors.")
-		['Schoenberger, Stephen P.', 'Pulendran, Bali']
-		>>> parse_name ("Madonna")
-		['Madonna']
-
+		>>> n = parse_names ("Leonard Richardson and Sam Ruby.")
+		>>> print (n[0].family == 'Richardson')
+		True
+		>>> print (n[0].given == 'Leonard')
+		True
+		>>> print (not n[0].other)
+		True
+		>>> n = parse_names ("Stephen P. Schoenberger, Bali Pulendran")
+		>>> print (n[0].family == 'Schoenberger')
+		True
+		>>> print (n[0].given == 'Stephen')
+		True
+		>>> print (n[0].other == 'P.')
+		True
+		>>> n = parse_names ("Madonna")
+		>>> print (not n[0].family)
+		True
+		>>> print (n[0].given == 'Madonna')
+		True
+		>>> print (not n[0].other)
+		True
+		
 	"""
 	# TODO: Xisbn authors fields are often appended with extra information
 	# like "with a foreword by" etc. Largely these are separated from the
@@ -79,18 +144,69 @@ def parse_name (name_str):
 	name_str = AND_PAT.sub (', ', name_str)
 	## Main:
 	auth_list = name_str.split (', ')
-	for i in range (len (auth_list)):
-		single_auth = auth_list[i].strip()
-		single_auth = single_auth.split (' ')
-		family_name = single_auth[-1]
-		if (family_name.endswith ('.')):
-			family_name = family_name[:-1]
-		given_names = ' '.join (single_auth[:-1])
-		reverse_name = family_name
-		if (given_names):
-			reverse_name += ', ' + given_names
-		auth_list[i] = reverse_name
-	return auth_list
+	name_list = [parse_single_name (x) for x in auth_list]
+	## Postconditions & return:
+	return name_list
+	
+
+def parse_editing_info (name_str):
+	"""
+	Detect whethers names are editors and returns
+	
+	Returns:
+		Whether editing information was recognised and the name with that
+		editing information removed.
+		
+	For example::
+
+		>>> parse_editing_info ("Leonard Richardson and Sam Ruby.")
+		(False, 'Leonard Richardson and Sam Ruby.')
+		>>> parse_editing_info ("Ann Thomson.")
+		(False, 'Ann Thomson.')
+		>>> parse_editing_info ("Stephen P. Schoenberger, Bali Pulendran, editors.")
+		(True, 'Stephen P. Schoenberger, Bali Pulendran')
+		>>> print parse_editing_info ("Madonna")
+		(False, 'Madonna')
+	
+	"""
+	## Preconditions & preparation:
+	# clean up string and return trivial cases 
+	name_str = name_str.strip()
+	if (not name_str):
+		return False, ''
+	## Main:
+	# strip extraneous and replace 'and'
+	for pat in EDITOR_PATS:
+		match = pat.search (name_str)
+		if match:
+			return True, pat.sub ('', name_str)
+	## Postconditions & return:
+	# no editting information found
+	return False, name_str
+		
+		
+def parse_publisher (pub_str):
+	"""
+	
+	For example::
+	
+		>>> parse_publisher ('New York: Asia Pub. House, c1979.')
+		('Asia Pub. House', 'New York', '1979')
+		>>> parse_publisher ('New York : LearningExpress, 1999.')
+		('LearningExpress', 'New York', '1999')
+		>>> parse_publisher ('HarperTorch')
+		('HarperTorch', '', '')
+		>>> parse_publisher ('Berkeley Heights, NJ: Enslow Publishers, c2000.')
+		('Enslow Publishers', 'Berkeley Heights, NJ', '2000')
+		
+	"""
+	for re in PUBLISHER_RES:
+		match = re.search (pub_str)
+		if match:
+			fields = ['pub', 'city', 'year']
+			match_vals = match.groupdict (None)
+			return tuple ([match_vals.get (f, '').strip() for f in fields])
+	return None, None, None
 
 
 

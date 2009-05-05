@@ -19,10 +19,15 @@ __docformat__ = 'restructuredtext en'
 
 ### IMPORTS ###
 
+import re
+
 from biblio.webquery import impl
 
 
 ### CONSTANTS & DEFINES ###
+
+SHORT_TITLE_SPLIT_RE = re.compile ('[:\?]')
+
 
 ### IMPLEMENTATION ###
 
@@ -31,34 +36,50 @@ class BibRecord (impl.ReprObj):
 	# month, booktitle, pubcity, address
 	_repr_fields = [
 		'id',
-		'pubtype',
+		'type',
+		'lang',
 		'title',
 		'authors',
-		'pubyear',
+		'year',
 		'edited',
 		'abstract',
 		'keywords',
 		'publisher',
 		'journal',
-		'notes',
-		'ext_identifiers',
+		'note',
+		'ext_references',
 	]
 	def __init__ (self):
 		"""
 		C'tor.
 		"""
 		self.id = u''
-		self.pubtype = u''
+		self.type = u''
 		self.title = u''
+		self.lang = u''
 		self.authors = []
-		self.pubyear = None
+		self.year = None
 		self.edited = False
 		self.abstract = u''
 		self.keywords = []
 		self.publisher = u''
 		self.journal = u''
-		self.notes = u''
-		self.ext_identifiers = {}
+		self.note = u''
+		self.ext_references = {}
+		
+	def add_ext_references (self, key, val):
+		refs = self.ext_references.get (key, [])
+		refs.extend (list (val))
+		self.ext_references[key] = refs
+		
+	def get_short_title (self):
+		match = SHORT_TITLE_SPLIT_RE.search (self.title)
+		if (match):
+			return self.title[:match.start()].strip()
+		else:
+			return self.title
+		
+	short_title = property (get_short_title)
 
 
 
@@ -110,7 +131,7 @@ class PersonalName (impl.ReprObj):
 		"""
 		Return a readable formatted version of the name.
 		"""
-		fields = [getattr (self, f, '') for f in _repr_fields]
+		fields = [getattr (self, f, '') for f in self._repr_fields]
 		return u' '.join ([f for f in fields if f])
 	
 	def __repr__ (self):
@@ -118,7 +139,7 @@ class PersonalName (impl.ReprObj):
 		Return a representation of this object.
 		"""
 		# overrides base class because that calls __unicode__
-		return impl.ReprObj (self)
+		return impl.ReprObj.__repr__ (self)
 
 
 

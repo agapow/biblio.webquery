@@ -36,6 +36,7 @@ def add_shared_options (optparser):
 		help="The webservice to query. By default it is '%s' (%s)." % (
 			DEFAULT_WEBSERVICE['title'], DEFAULT_WEBSERVICE['id']) ,
 		metavar='WEBSERVICE',
+		choices=WEBSERVICE_LOOKUP.keys(),
 		default=DEFAULT_WEBSERVICE['id'],
 	)
 	
@@ -44,16 +45,16 @@ def add_shared_options (optparser):
 		help='''The access key for the webservice, if one is required.''',
 		metavar='KEY',
 		default=None,
-	)	
+	)
 	
-	optparser.add_option ('--debug', '-d',
+	optparser.add_option ('--debug',
 		dest="debug",
 		action='store_true',
 		help='For errors, issue a full traceback instead of just a message.',
 	)
 	
 
-def check_shared_options (options)
+def check_shared_options (options):
 	serv = WEBSERVICE_LOOKUP.get (options.webservice, None)
 	if (not serv):
 		optparser.error ("Unrecognised webservice '%s'" % options.webservice)

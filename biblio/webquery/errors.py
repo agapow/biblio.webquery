@@ -13,9 +13,9 @@ __docformat__ = 'restructuredtext en'
 import exceptions
 
 __all__ = [
-	'NoResultsError',
 	'ParseError',
 	'QueryThrottleError',
+	'QueryError',
 ]
 
 
@@ -23,16 +23,16 @@ __all__ = [
 
 ### IMPLEMENTATION ###
 
-class NoResultsError (exceptions.ValueError):
+class QueryError (exceptions.ValueError):
 	"""
-	Thrown when parsing results with no results.
+	Raised when there is an problem with a queries reply.
 	"""
 	
 	def __init__ (self, msg):
 		"""
 		C'tor.
 		"""
-		exceptions.ValueError (self, msg)
+		exceptions.ValueError.__init__ (self, msg)
 		
 
 class ParseError (exceptions.ValueError):
@@ -44,7 +44,7 @@ class ParseError (exceptions.ValueError):
 		"""
 		C'tor.
 		"""
-		exceptions.ValueError (self, msg)
+		exceptions.ValueError.__init__ (self, msg)
 		
 
 class QueryThrottleError (exceptions.RuntimeError):

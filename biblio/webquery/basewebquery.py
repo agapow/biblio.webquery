@@ -48,7 +48,7 @@ class BaseWebquery (impl.ReprObj):
 		#for ql in list (limits):
 		#	self.limits.append (ql)
 
-	def query (self, url):
+	def send_request (self, url):
 		for limit in self.limits:
 			limit.check_limit (self)
 		socket.setdefaulttimeout (self.timeout)

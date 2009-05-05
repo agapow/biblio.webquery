@@ -13,9 +13,11 @@ __docformat__ = 'restructuredtext en'
 
 import re
 
-from impl normalize_isbn
+from impl import normalize_isbn
 from basewebquery import BaseWebquery
 from bibrecord import BibRecord
+import utils
+from errors import *
 
 __all__ = [
 	'XisbnQuery',
@@ -26,8 +28,6 @@ __all__ = [
 ### CONSTANTS & DEFINES ###
 
 XISBN_ROOTURL = 'http://xisbn.worldcat.org/webservices/xid/isbn/'
-
-
 
 FORMATS = [
 	'raw',
@@ -60,7 +60,7 @@ class XisbnQuery (BaseWebquery):
 			'isbn': normalize_isbn (isbn),
 			'flds': ','.join (fields),
 		}
-		return self.query (sub_url)
+		return self.send_request (sub_url)
 		
 	def query_bibdata_by_isbn (self, isbn, fmt='bibrecord'):
 		"""
@@ -96,8 +96,6 @@ class XisbnQuery (BaseWebquery):
 		isbn = normalize_isbn (isbn)
 		sub_url = '%(isbn)s?method=to13&format=xml' % {'isbn': isbn}
 		
-		
-		
 	
 def xisbn_py_to_bibrecord (pytxt):
 	"""
@@ -118,18 +116,38 @@ def xisbn_py_to_bibrecord (pytxt):
 	xisbn_dict = eval (pytxt)
 	# parse reply
 	status = xisbn_dict.get ('stat', 'ok')
-	assert (status == 'ok'), "reponse status was bad (%s)" % status
+	if (status != 'ok'):
+		if (status == 'unknownId'):
+			return []
+		else:
+			raise QueryError ("response status was bad (%s)" % status)
 	# parse individual records
 	bibrecs = []
 	for entry in xisbn_dict['list']:
 		new_bib = BibRecord()
 		new_bib.publisher = entry.get ('publisher', '')
 		new_bib.lang = entry.get ('lang', '')
-		new_bib.pubcity = entry.get ('city', '')
-		new_bib.author = entry.get ('author', '')
-		new_bib.pubyear = entry.get ('year', '')
-		new_bib.key = entry.get ('isbn', [''])[0]
+		new_bib.city = entry.get ('city', '')
+		auth_str = entry.get ('author', '')
+		edited, auth_str = utils.parse_editing_info (auth_str)
+		new_bib.edited = edited
+		auth_list = utils.parse_names (auth_str)
+		new_bib.authors = auth_list
+		new_bib.year = entry.get ('year', '')
+		new_bib.id = entry.get ('isbn', [''])[0]
+		new_bib.add_ext_references ('isbn', entry.get ('isbn', []))
+		new_bib.add_ext_references ('lccn', entry.get ('lccn', []))
+		new_bib.add_ext_references ('oclcnum', entry.get ('oclcnum', []))
 		new_bib.title = entry.get ('title', '')
+		form = entry.get ('form', [''])[0].upper()
+		if (form in ['BA', 'BB', 'BC']):
+			if (edited):
+				new_bib.type = 'collection'
+			else:
+				new_bib.type = 'book'
+		else:
+			# AA (Audio), DA (Digital),FA (Film), MA (Microform), VA (Video)
+			new_bib.type = 'misc'	
 		bibrecs.append (new_bib)
 	## Postconditions & return:
 	return bibrecs

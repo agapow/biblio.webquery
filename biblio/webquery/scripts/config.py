@@ -38,11 +38,11 @@ WEBSERVICES = [
 		'title':   'ISBNdb',
 		'ctor':    IsbndbQuery,
 	},
-	{
-		'id':      'loc', 
-		'title':   'Library of Congress',
-		'ctor':    LocQuery,
-	},
+#	{
+#		'id':      'loc', 
+#		'title':   'Library of Congress',
+#		'ctor':    LocQuery,
+#	},
 ]
 DEFAULT_WEBSERVICE = WEBSERVICES[0]
 WEBSERVICE_LOOKUP = dict ([(s['id'], s) for s in WEBSERVICES])
