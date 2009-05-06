@@ -118,7 +118,7 @@ class XisbnQuery (BaseWebquery):
 		:Parameters:
 			isbn : string
 				An ISBN-10 or ISBN-13.
-			fmt : string
+			format : string
 				See `query_service`. 
 				
 		:Returns:

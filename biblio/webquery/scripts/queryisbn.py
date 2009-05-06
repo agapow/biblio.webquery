@@ -26,13 +26,13 @@ from common import *
 
 PRINT_FIELDS = [
 	'title', 
-	'author',
+	'authors',
 	'publisher',
-	'pubyear',
+	'year',
 	'lang',
 ]
 
-_DEV_MODE = True
+_DEV_MODE = False
 
 ### IMPLEMENTATION ###
 
@@ -40,8 +40,11 @@ def parse_args():
 	# Construct the option parser.
 	usage = '%prog [options] ISBNs ...'
 	version = "version %s" %  script_version
-	epilog='',
-	optparser = OptionParser (usage=usage, version=version, epilog=epilog)
+	epilog=''
+	description = 'Return bibliographic information from webservices for ' \
+		'supplied ISBNs.'
+	optparser = OptionParser (usage=usage, version=version,
+		description=description, epilog=epilog)
 	add_shared_options (optparser)
 
 	# parse and check args
@@ -49,7 +52,7 @@ def parse_args():
 	
 	if (not isbns):
 		optparser.error ('No ISBNs specified')
-	check_shared_options (optparser)
+	check_shared_options (options, optparser)
 	
 	## Postconditions & return:
 	return isbns, options
@@ -61,7 +64,7 @@ def main():
 	try:
 		for isbn in isbn_list:
 			print '%s:' % isbn
-			rec_list = webqry.query_bibdata_by_isbn (isbn, fmt='bibrecord')
+			rec_list = webqry.query_bibdata_by_isbn (isbn, format='bibrecord')
 			if (rec_list):
 				for f in PRINT_FIELDS:
 					if (getattr (rec_list[0], f)):

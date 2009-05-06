@@ -139,7 +139,8 @@ class BaseKeyedWebQuery (BaseWebquery):
 		must include keyword formatting for the access key, i.e. ``%(key)s``.
 		
 		"""
-		return self.root_url + sub_url % {'key': self.key}
+		full_url = self.root_url + sub_url
+		return full_url % {'key': self.key}
 
 	
 ### TEST & DEBUG ###

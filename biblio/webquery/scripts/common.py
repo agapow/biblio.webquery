@@ -31,6 +31,12 @@ __all__ = [
 ### IMPLEMENTATION ###
 
 def add_shared_options (optparser):
+	optparser.add_option ('--debug',
+		dest="debug",
+		action='store_true',
+		help='For errors, issue a full traceback instead of just a message.',
+	)
+	
 	optparser.add_option ('--service', '-s',
 		dest='webservice',
 		help="The webservice to query. Choices are %s. The default is %s." % (
@@ -48,19 +54,13 @@ def add_shared_options (optparser):
 		metavar='KEY',
 		default=None,
 	)
-	
-	optparser.add_option ('--debug',
-		dest="debug",
-		action='store_true',
-		help='For errors, issue a full traceback instead of just a message.',
-	)
-	
 
-def check_shared_options (options):
+
+def check_shared_options (options, optparser):
 	serv = WEBSERVICE_LOOKUP.get (options.webservice, None)
 	if (not serv):
 		optparser.error ("Unrecognised webservice '%s'" % options.webservice)
-	if (isinstance (serv, BaseKeyedWebQuery)):
+	if (issubclass (serv['ctor'], BaseKeyedWebQuery)):
 		if (not options.service_key):
 			optparser.error ("%s webservice requires access key" % serv['title'])
 	else:
@@ -71,7 +71,7 @@ def check_shared_options (options):
 
 def construct_webquery (service, key):
 	serv_cls = WEBSERVICE_LOOKUP[service]['ctor']
-	if (isinstance (serv_cls, BaseKeyedWebQuery)):
+	if (issubclass (serv_cls, BaseKeyedWebQuery)):
 		return serv_cls (key=key, timeout=5.0, limits=None)
 	else:
 		return serv_cls (timeout=5.0, limits=None)

@@ -13,6 +13,7 @@ __docformat__ = 'restructuredtext en'
 from impl import ElementTree, assert_or_raise
 from basewebquery import BaseKeyedWebQuery
 import errors
+import utils
 from bibrecord import *
 
 __all__ = [
@@ -40,8 +41,8 @@ class IsbndbQuery (BaseKeyedWebQuery):
 		"""
 		C'tor, accepting an access key.
 		"""
-		BaseKeyedWebQuery.__init__ (self, root_url=root_url, timeout=timeout,
-			limits=limits)
+		BaseKeyedWebQuery.__init__ (self, root_url=ISBNDB_ROOTURL, key=key,
+			timeout=timeout, limits=limits)
 
 	def query_service (self, index, value, results):
 		"""
@@ -66,15 +67,15 @@ class IsbndbQuery (BaseKeyedWebQuery):
 		"""
 		## Preconditions & preparation:
 		if (index == 'isbn'):
-			value = normalize_isbn (value)
+			value = utils.normalize_isbn (value)
 		## Main:
-		sub_url = '&index1=%(indx)s&value1=%(val)s' % {
+		sub_url = 'index1=%(indx)s&value1=%(val)s' % {
 			'indx': index,
 			'val': value,
 		}
 		if (results):
 			res_str = ','.join (list(results))
-			sub_url += '&' + res_str
+			sub_url += '&results=' + res_str
 		return self.request (sub_url)
 		
 	def query_bibdata_by_isbn (self, isbn, format='bibrecord'):
@@ -97,7 +98,7 @@ class IsbndbQuery (BaseKeyedWebQuery):
 		assert (format in FORMATS), \
 			"unrecognised format '%s', must be one of %s" % (format, FORMATS)
 		## Main:
-		results = query_service (self, index='isbn', value=isbn, results=[
+		results = self.query_service (index='isbn', value=isbn, results=[
 			'authors', 'subjects', 'texts', 'details'])
 		if (format is 'bibrecord'):
 			results = isbndb_xml_to_bibrecords (results)
@@ -120,7 +121,7 @@ class IsbndbQuery (BaseKeyedWebQuery):
 		
 		"""
 		## Main:
-		results = query_service (self, index='name', value=name, results=fields)
+		results = self.query_service (index='name', value=name, results=fields)
 		## Postconditions & return:
 		return results
 
@@ -140,7 +141,7 @@ class IsbndbQuery (BaseKeyedWebQuery):
 		
 		"""
 		## Main:
-		results = query_service (self, index='person_id', value=name, results=fields)
+		results = self.query_service (index='person_id', value=name, results=fields)
 		## Postconditions & return:
 		return results
 
@@ -172,7 +173,7 @@ def isbndb_xml_to_bibrecords (xml_txt):
 		if (author_elem):
 			author_strs = [e.text.strip() for e in author_elem.findall
 				('Person')]
-			authors = [parse_single_name (a) for a in author_strs]
+			authors = [utils.parse_single_name (a) for a in author_strs]
 		else:
 			author_elem = bdata.find ('AuthorsText')
 			if (author_elem):

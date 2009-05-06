@@ -72,8 +72,19 @@ def parse_args():
 	# Construct the option parser.
 	usage = '%prog [options] FILES ...'
 	version = "version %s" %  script_version
-	epilog=''
-	optparser = OptionParser (usage=usage, version=version, epilog=epilog)
+	description='Extract an ISBN from a file name, look up the associated ' \
+		'bibliographic information in a webservice and rename the file ' \
+		'appropriately.'
+	epilog='ISBNs are extracted from filenames by pure heuristics - obviously ' \
+		'not all forms will be found. ' \
+		'The new name is generated first before the various processing ' \
+		'options are applied. In order, characters are stripped from the ' \
+		'name, excess whitespace is collapsed and then the case conversion ' \
+		'is applied. The file extension, if any, is removed before renaming ' \
+		'and re-applied afterwards. ' \
+		'We suggest you try a dryrun before renaming any files.'
+	optparser = OptionParser (usage=usage, version=version, epilog=epilog,
+		description=description)
 	add_shared_options (optparser)
 
 	optparser.add_option ('--case', '-c',
@@ -141,7 +152,7 @@ def parse_args():
 	
 	if (not fpaths):
 		optparser.error ('No files specified')
-	check_shared_options (options)
+	check_shared_options (options, optparser)
 	
 	## Postconditions & return:
 	return fpaths, options
