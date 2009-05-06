@@ -75,7 +75,7 @@ class IsbndbQuery (BaseKeyedWebQuery):
 		if (results):
 			res_str = ','.join (list(results))
 			sub_url += '&' + res_str
-		return self.send_request (sub_url)
+		return self.request (sub_url)
 		
 	def query_bibdata_by_isbn (self, isbn, format='bibrecord'):
 		"""
@@ -185,8 +185,7 @@ def isbndb_xml_to_bibrecords (xml_txt):
 		if (pub_elem):
 			newrec.publisher, newrec.city, newrec.year = \
 				parse_publisher (pub_elem.text)
-		bibrecs.append (newrec))
-		print newrec
+		bibrecs.append (newrec)
 	## Postconditions & return:
 	return bibrecs
 

@@ -20,6 +20,7 @@ except:
 	__version__ = 'unknown'
 
 __all__ = [
+	'WEBSERVICES',
 	'WEBSERVICE_LOOKUP',
 	'DEFAULT_WEBSERVICE',
 ]

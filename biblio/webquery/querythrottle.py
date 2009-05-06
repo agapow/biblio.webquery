@@ -191,7 +191,6 @@ class AbsoluteNumberThrottle (BaseQueryThrottle):
 		exceeding the limit is possible.
 		
 		"""
-		print self._query_count, self.max
 		return (self._query_count < self.max)
 
 	def log_success (self, wquery):

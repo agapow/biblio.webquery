@@ -33,9 +33,11 @@ __all__ = [
 def add_shared_options (optparser):
 	optparser.add_option ('--service', '-s',
 		dest='webservice',
-		help="The webservice to query. By default it is '%s' (%s)." % (
-			DEFAULT_WEBSERVICE['title'], DEFAULT_WEBSERVICE['id']) ,
-		metavar='WEBSERVICE',
+		help="The webservice to query. Choices are %s. The default is %s." % (
+			', '.join (['%s (%s)' % (s['id'], s['title']) for s in WEBSERVICES]),
+			DEFAULT_WEBSERVICE['id']
+		) ,
+		metavar='SERVICE',
 		choices=WEBSERVICE_LOOKUP.keys(),
 		default=DEFAULT_WEBSERVICE['id'],
 	)

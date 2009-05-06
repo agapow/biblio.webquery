@@ -51,24 +51,19 @@ ISBN_RE = [re.compile (p, re.IGNORECASE) for p in ISBN_PATS]
 
 _DEV_MODE = True
 
-DEF_NAME_FMT = '%(auth)s%(year)s_%(title)s_(isbn%(isbn)s)'
+DEF_NAME_FMT = '%(auth)s%(year)s_%(short_title)s_(isbn%(isbn)s)'
+DEF_STRIP_CHARS = ''':!,'".?()'''
 DEF_BLANK_CHARS = ''
 STRIP_CHARS_RE = re.compile ('[\'\":\,!\.\?\(\)]')
 
 COLLAPSE_SPACE_RE = re.compile (r'\s+')
 
 
-CASE_CHOICES = {
-	#'u':           'u',        
-	'upper':       'u',
-	#'uppercase':   'u',
-	#'l':           'l',
-	'lower':        'l',
-	#'lowercase',
-	#'o':            'o',
-	'orig':         'o',
-	#'original':     'o',
-}
+CASE_CHOICES = [
+	'orig',
+	'upper',
+	'lower',
+]
 
 
 ### IMPLEMENTATION ###
@@ -83,22 +78,31 @@ def parse_args():
 
 	optparser.add_option ('--case', '-c',
 		dest='case',
-		help="Whether to covert the case of the answer.",
-		choices=sorted (CASE_CHOICES.keys()),
-		default='orig',
-	)
+		help="Case conversion of the new file name. Choices are %s." \
+			"The default is %s. " % (', '.join (CASE_CHOICES), CASE_CHOICES[0]),
+		choices=CASE_CHOICES,
+		default=CASE_CHOICES[0],
+	),
 	
 	optparser.add_option ('--leave_whitespace',
-		action='store_false',
-		dest='normalise_whitespace',
-		help="Whether to clearup excess whitespace.",
-		default=True,
+		action='store_true',
+		dest='leave_whitespace',
+		help="Leave excess whitespace. By default, consecutive spaces in " \
+			"names are compacted",
+		default=False,
 	)
 	
 	optparser.add_option ('--replace_whitespace',
 		dest='replace_whitespace',
-		help="Replace whitespace with this character.",
-		default=' ',
+		help="Replace whitespace in the new name with this string.",
+		default='',
+	)
+	
+	optparser.add_option ('--strip_chars',
+		dest='strip_chars',
+		help="Remove these characters from the new name. By default " \
+			"this are '%s'." % DEF_STRIP_CHARS,
+		default=DEF_STRIP_CHARS,
 	)
 	
 	optparser.add_option ('--overwrite',
@@ -113,6 +117,17 @@ def parse_args():
 		dest='dryrun',
 		help="Check function and without renaming files.",
 		default=False,
+	)
+	
+	optparser.add_option ('--template',
+		dest='template',
+		help="The form to use for renaming the file. The fields recognised are " \
+			"auth (primary authors family name), " \
+			"title (full title of the book), " \
+			"short_title (abbreviated title), " \
+			"isbn, " \
+			"year (year of publication). The default is '%s'." % DEF_NAME_FMT,
+		default=DEF_NAME_FMT,
 	)
 	
 	optparser.add_option ('--unknown',
@@ -165,10 +180,11 @@ def generate_new_name (bibrec, options):
 	else:
 		auth_str = options.unknown
 	logging.info ('~ found %s - %s' % (auth_str, bibrec.title))
-	return DEF_NAME_FMT % {
+	return options.template % {
 		'auth': auth_str,
 		'year': bibrec.year or options.unknown,
-		'title': bibrec.short_title or options.unknown,
+		'short_title': bibrec.short_title or options.unknown,
+		'title': bibrec.title or options.unknown,
 		'isbn': bibrec.id or options.unknown,
 	}
 	
@@ -177,9 +193,11 @@ def postprocess_name (name, options):
 	## Preconditions:
 	assert (name)
 	## Main:
-	name = STRIP_CHARS_RE.sub ('', name)
+	# strip chars from name
+	for c in options.strip_chars:
+		name = name.replace (c, '')
 	# clean up excess whitespace
-	if (options.normalise_whitespace):
+	if (not options.leave_whitespace):
 		name = COLLAPSE_SPACE_RE.sub (' ', name.strip())
 	if (options.replace_whitespace):
 		name = name.replace (' ', options.replace_whitespace)
@@ -206,7 +224,7 @@ def main():
 			if (isbn):
 				try:
 					bibrec_list = webqry.query_bibdata_by_isbn (isbn,
-						fmt='bibrecord')
+						format='bibrecord')
 					if (bibrec_list):
 						bibinfo = bibrec_list[0]
 						new_name = generate_new_name (bibinfo, options)
@@ -223,11 +241,11 @@ def main():
 							logging.info ('~ renaming file')
 							rename (fpath, newpath)
 					else:
-						print "no records returned"
+						logging.info ('- no records returned')
 				except errors.QueryError, err:
 					logging.info ('- query failed: %s.' % err)
 			else:
-				print "no isbn extracted"
+				print logging.info ('- no isbn extracted')
 		
 	except BaseException, err:
 		if (_DEV_MODE or options.debug):

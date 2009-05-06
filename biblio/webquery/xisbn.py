@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-Querying WorldCat xISBN service for bibliographic information and normalising the results.
+Querying WorldCat xISBN service for bibliographic information.
 
 """
 # TODO: error-handling logic is correct?
@@ -13,7 +13,6 @@ __docformat__ = 'restructuredtext en'
 
 import re
 
-from impl import normalize_isbn
 from basewebquery import BaseWebquery
 from bibrecord import BibRecord
 import utils
@@ -81,10 +80,10 @@ class XisbnQuery (BaseWebquery):
 		sub_url = "%(isbn)s?method=%(mthd)s&format=%(fmt)s&fl=%(flds)s" % {
 			'mthd': method,
 			'fmt': format,
-			'isbn': normalize_isbn (isbn),
+			'isbn': utils.normalize_isbn (isbn),
 			'flds': ','.join (fields),
 		}
-		return self.send_request (sub_url)
+		return self.request (sub_url)
 		
 	def query_bibdata_by_isbn (self, isbn, format='bibrecord'):
 		"""
@@ -127,7 +126,7 @@ class XisbnQuery (BaseWebquery):
 		
 		"""
 		## Main:
-		return = self.query_service (isbn=isbn, method='getEditions',
+		return self.query_service (isbn=isbn, method='getEditions',
 			format=format)
 	
 	def query_isbn (self, isbn, method, format='string'):
