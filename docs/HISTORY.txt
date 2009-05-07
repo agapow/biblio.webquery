@@ -1,6 +1,12 @@
 History
 =======
 
+v0.4.3b, 2009-05-07
+-------------------
+
+* Include documentation in source distribution.
+
+
 v0.4b, 2009-05-06
 -----------------
 

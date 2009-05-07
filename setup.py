@@ -1,5 +1,6 @@
 from setuptools import setup, find_packages
 import os
+from glob import glob
 
 from biblio.webquery import __version__
 
@@ -18,7 +19,8 @@ setup (
 	author_email='agapow@bbsrc.ac.uk',
 	url='http://www.agapow.net/software/biblio.webquery',
 	license='BSD',
-	packages=find_packages(exclude=['ez_setup']),
+	packages=find_packages(),
+  
 	namespace_packages=['biblio'],
 	test_suite = 'nose.collector',
 	include_package_data=True,
@@ -27,7 +29,10 @@ setup (
 		'setuptools',
 		# -*- Extra requirements: -*-
 	],
-	entry_points="""
-		# -*- Entry points: -*-
-	""",
+	entry_points={
+		'console_scripts': [
+			'queryisbn = biblio.webquery.scripts.queryisbn:main',
+			'renamebyisbn = biblio.webquery.scripts.renamebyisbn:main',
+		],
+	},
 )
