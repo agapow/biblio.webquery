@@ -25,7 +25,6 @@ __all__ = [
 ### CONSTANTS & DEFINES ###
 
 ISBNDB_ROOTURL = 'http://isbndb.com/api/books.xml?access_key=%(key)s&'
-ISBNDB_KEY = 'OPNH8HG2'
 
 FORMATS = [
 	'xml',
@@ -147,6 +146,19 @@ class IsbndbQuery (BaseKeyedWebQuery):
 
 
 def isbndb_xml_to_bibrecords (xml_txt):
+	"""
+	Transform XML returned by ISBNdb to bibliographic records.
+	
+	:Parameters:
+		xml_txt : string
+			ISBNdb flavoured XML
+			
+	:Returns:
+		A sequence of BibRecords
+		
+	The data within ISBNdb is fairly heterogenous and requires a large amount
+	of munging to extract sane author names and titles. ()
+	"""
 	## Main:
 	# turn into an xml tree
 	root = ElementTree.fromstring (xml_txt)
@@ -164,20 +176,23 @@ def isbndb_xml_to_bibrecords (xml_txt):
 	for bdata in booklist_elem.findall ('BookData'):
 		newrec = BibRecord()
 		newrec.pubtype = 'book'
-		newrec.title = (bdata.findtext ('TitleLong') or u'').strip()
+		title = bdata.findtext ('TitleLong') or bdata.findtext ('Title') or  u''
+		newrec.title = title.strip()
 		newrec.abstract = (bdata.findtext ('Summary') or u'').strip()
 		newrec.note = (bdata.findtext ('Notes') or u'').strip()
 		newrec.keywords = [e.text.strip() for e in bdata.findall ('Subject')]
 		authors = []
 		author_elem = bdata.find ('Authors')
-		if (author_elem):
+		if (author_elem is not None):
 			author_strs = [e.text.strip() for e in author_elem.findall
 				('Person')]
 			authors = [utils.parse_single_name (a) for a in author_strs]
 		else:
 			author_elem = bdata.find ('AuthorsText')
-			if (author_elem):
+			print 'foo', author_elem
+			if (author_elem is not None):
 				edited, authors_str = utils.parse_editing_info (author_elem.text)
+				print "***", edited, authors_str.encode ('utf8')
 				newrec.edited = edited
 				authors = utils.parse_names (authors_str)
 		newrec.authors = authors

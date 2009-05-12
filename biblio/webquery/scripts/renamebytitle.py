@@ -1,12 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-Rename files as by the ISBN buried in their original name.
+Rename files as by the title buried in their original name.
 
 """
-# TODO: throttle parameter?
-# TODO: Amazon query?
-# TODO: output in other formats?
 
 __docformat__ = 'restructuredtext en'
 
@@ -26,42 +23,52 @@ from common import *
 
 ### CONSTANTS & DEFINES ###
 
-ISBN10_PAT = r'(\d{9}[\d|X])'
-ISBN13_PAT = r'(\d{13})'
+DIVID_CHARS = ['-', '_', ',', '.']
 
-ISBN_PATS = [
-	r'\(ISBN([^\)]+)\)',
-	r'^(\d{13})$',
-	r'^(\d{13})[\b|_|\.|\-|\s]',
-	r'[\b|_|\.|\-|\s](\d{13})$',
-	r'[\b|_|\.|\-|\s](\d{13})[\b|_|\.]',
-	r'^(\d{9}[\d|X])$',
-	r'^(\d{9}[\d|X])[\b|_|\.|\s|\-]',
-	r'[\b|_|\.|\-|\s](\d{9}[\d|X])$',
-	r'[\b|_|\.|\-|\s](\d{9}[\d|X])[\b|_|\.|\-|\s]',
-	r'ISBN\s*(\d{13})',
-	r'ISBN\s*(\d{9}[\d|X])',
-	r'[\[\(](\d{9}[\d|X])[\]\)]',
-	r'\D(\d{13})$',
-	r'\D(\d{9}[\d|X])$',
-
+CLEAN_TITLE_RE = re.compile (r'[\-\._,]+')
+STRIP_TITLE_RES = [re.compile (p) for p in [
+		r'\([^\)]*\)',
+		r'\[[^\]]*\)',
+		r'\d{5,}$',
+		r'[\-\._\s,]+$',
+		r'^[\-\._\s,]',
+		r'\s*(1st|2nd|3rd)\s+edition$',
+	]
 ]
 
-ISBN_RE = [re.compile (p, re.IGNORECASE) for p in ISBN_PATS]
+DECAMEL_RE = re.compile('([A-Z][A-Z][a-z])|([a-z][A-Z])')
 
 _DEV_MODE = True
 
 
 ### IMPLEMENTATION ###
 
+def ask_choice (prompt="Use this", choices='yna'):
+	print "%s? [%s]" % (prompt, choices),
+	answer = raw_input().lower().strip()
+	if (answer in choices):
+		return answer
+	else:
+		return ask_choice (prompt, choices)
+	
+def space_out_camel_case(stringAsCamelCase):
+	"""Adds spaces to a camel case string.Failure to space out string returns the original string.
+	>>> space_out_camel_case('DMLSServicesOtherBSTextLLC')
+	'DMLS Services Other BS Text LLC'
+	"""
+	if stringAsCamelCase is None:
+		return None
+	return DECAMEL_RE.sub (lambda m: m.group()[:1] + " " + m.group()[1:], stringAsCamelCase)
+		
+	
 def parse_args():
 	# Construct the option parser.
 	usage = '%prog [options] FILES ...'
 	version = "version %s" %  script_version
-	description='Extract an ISBN from a file name, look up the associated ' \
+	description='Extract an title from a file name, look up the associated ' \
 		'bibliographic information in a webservice and rename the file ' \
 		'appropriately.'
-	epilog='ISBNs are extracted from filenames by pure heuristics - obviously ' \
+	epilog='Titles are extracted from filenames by pure heuristics - obviously ' \
 		'not all forms will be found. ' \
 		'The new name is generated first before the various processing ' \
 		'options are applied. In order, characters are stripped from the ' \
@@ -94,7 +101,7 @@ def dir_base_ext_from_path (fpath):
 	return fdir, base, ext
 
 
-def rename_file (oldpath, newname):
+def rename_inplace (oldpath, newname):
 	"""
 	Rename a file, while keeping it in the same location.
 	"""
@@ -103,51 +110,29 @@ def rename_file (oldpath, newname):
 	rename (oldpath, newpath)
 
 
-def extract_isbn_from_filename (fname):
-	for r in ISBN_RE:
-		match = r.search (fname)
-		if match:
-			return match.group(1)
-	return None
-	
-
-def generate_new_name (bibrec, options):
-	if (bibrec.authors):
-		primary_auth = bibrec.authors[0]
-		auth_str = primary_auth.family or primary_auth.given
+def extract_title_from_filename (fname):
+	# TODO: check for 'by'
+	stripped_name = space_out_camel_case (fname).strip().lower()
+	for re in STRIP_TITLE_RES:
+		stripped_name = re.sub ('', stripped_name)
+	splitchar = ''
+	for c in ['-', '_', '.']:
+		if stripped_name.count(c):
+			splitchar = c
+			break
+	if (splitchar):
+		part1, part2 = stripped_name.split (splitchar, 1)
+		part1 = CLEAN_TITLE_RE.sub (' ', part1).strip()
+		part2 = CLEAN_TITLE_RE.sub (' ', part2).strip()
+		wordlen1, wordlen2 = len (part1.split (' ')), len (part2.split (' '))
+		if (wordlen2 < wordlen1):
+			title = part1
+		else:
+			title = part2
 	else:
-		auth_str = options.unknown
-	logging.info ('~ found %s - %s' % (auth_str, bibrec.title))
-	return options.template % {
-		'auth': auth_str,
-		'year': bibrec.year or options.unknown,
-		'short_title': bibrec.short_title or options.unknown,
-		'title': bibrec.title or options.unknown,
-		'isbn': bibrec.id or options.unknown,
-	}
-	
-	
-def postprocess_name (name, options):
-	## Preconditions:
-	assert (name)
-	## Main:
-	for c in options.space_chars:
-		name = name.replace (c, ' ')
-	# strip chars from name
-	for c in options.strip_chars:
-		name = name.replace (c, '')
-	# clean up excess whitespace
-	if (not options.leave_whitespace):
-		name = COLLAPSE_SPACE_RE.sub (' ', name.strip())
-	if (options.replace_whitespace):
-		name = name.replace (' ', options.replace_whitespace)
-	# harmomise case
-	if (options.case == 'lower'):
-		name = name.lower()
-	elif (options.case == 'upper'):
-		name = name.upper()
-	## Return:
-	return name
+		title = stripped_name
+	clean_title = CLEAN_TITLE_RE.sub (' ', title).strip()
+	return clean_title
 
 
 def main():
@@ -157,10 +142,11 @@ def main():
 	try:
 		webqry = construct_webquery (options.webservice, options.service_key)
 		for fpath in fpath_list:
-			logging.info ('Original %s ...' % fpath)
+			logging.info ("Original %s ..." % fpath)
 			fdir, base, ext = dir_base_ext_from_path (fpath)
-			isbn = extract_isbn_from_filename (base)
-			logging.info ('~ extracted ISBN %s ...' % isbn)
+			title = extract_title_from_filename (base)
+			logging.info ("~ extracted title '%s' ..." % title)
+			continue
 			if (isbn):
 				try:
 					bibrec_list = webqry.query_bibdata_by_isbn (isbn,

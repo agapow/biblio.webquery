@@ -1,6 +1,12 @@
 History
 =======
 
+v0.4.4b, 2009-05-08
+-------------------
+
+* Added 'blank_char' option to remove troublesome slashes from filenames.
+
+
 v0.4.3b, 2009-05-07
 -------------------
 

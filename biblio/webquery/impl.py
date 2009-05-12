@@ -42,9 +42,9 @@ class ReprObj (object):
 		return self.__unicode__().encode ('utf8')
 	
 	def __unicode__ (self):
-		repr_strs = ["%s: '%s'" % (field, getattr (self, field)) for field in
+		repr_strs = [u"%s: '%s'" % (field, getattr (self, field)) for field in
 			self._repr_fields]
-		return "%s (%s)" % (self.__class__.__name__, '; '.join (repr_strs))
+		return u"%s (%s)" % (self.__class__.__name__, u'; '.join (repr_strs))
 	
 	def __repr__ (self):
 		return str (self)

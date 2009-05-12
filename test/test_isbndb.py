@@ -38,6 +38,17 @@ SIMPLE_ONE_XML = """<?xml version="1.0" encoding="UTF-8"?>
 	 </BookList>
 	</ISBNdb>"""
 
+SIMPLE_TWO_XML = """<?xml version="1.0" encoding="UTF-8"?>
+<ISBNdb server_time="2009-05-07T15:54:03Z">
+<BookList total_results="1" page_size="10" page_number="1" shown_results="1">
+<BookData book_id="progress_in_botany_volume_66" isbn="3540224742" isbn13="9783540224747">
+<Title>Progress in Botany / Volume 66</Title>
+<TitleLong></TitleLong>
+<AuthorsText>K. Esser (Editor), U. Lüttge (Editor), W. Beyschlag (Editor), J. Murata (Editor)</AuthorsText>
+<PublisherText publisher_id="springer">Springer</PublisherText>
+</BookData>
+</BookList>
+</ISBNdb>"""
 
 ### TESTS ###
 
@@ -53,7 +64,10 @@ class test_isbndb_xml_to_bibrecords (object):
 		recs = isbndb.isbndb_xml_to_bibrecords (SIMPLE_ONE_XML)
 		assert (len (recs) == 1)
 
-
+	def test_simple_two (self):
+		recs = isbndb.isbndb_xml_to_bibrecords (SIMPLE_TWO_XML)
+		print recs
+		assert (len (recs) == 2)
 
 
 ### END ######################################################################

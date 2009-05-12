@@ -20,9 +20,10 @@ from bibrecord import PersonalName
 # patterns for extracting editors names
 EDITOR_PATS = [re.compile (x, flags=re.IGNORECASE+re.UNICODE) for x in
 	[
-		r'^edited by\s+',   # "(edited )by ..."
-		r'\s*, editors\.?$',     # "..., editors"
-		r'^editors,?\s*',        # "editors, ..."        
+		r'^edited by\s+',      # "(edited )by ..."
+		r'\s*, editors\.?$',   # "..., editors"
+		r'^editors,?\s*',      # "editors, ..."        
+		r'(\(editor\))',        # "... (Editor)"        
 	]
 ]
 

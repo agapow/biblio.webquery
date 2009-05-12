@@ -2,3 +2,5 @@ docs/html
 docs/pdf
 docs/api
 *.pyc
+build
+dist
