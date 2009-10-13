@@ -26,6 +26,11 @@ __all__ = [
 	'check_shared_options',
 	'construct_webquery',
 	'add_renaming_options',
+	'DEF_NAME_FMT',
+	'DEF_STRIP_CHARS',
+	'DEF_BLANK_CHARS',
+	'STRIP_CHARS_RE',
+	'COLLAPSE_SPACE_RE',
 ]
 
 

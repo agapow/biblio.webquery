@@ -23,42 +23,145 @@ from common import *
 
 ### CONSTANTS & DEFINES ###
 
-DIVID_CHARS = ['-', '_', ',', '.']
-
 CLEAN_TITLE_RE = re.compile (r'[\-\._,]+')
-STRIP_TITLE_RES = [re.compile (p) for p in [
-		r'\([^\)]*\)',
-		r'\[[^\]]*\)',
-		r'\d{5,}$',
-		r'[\-\._\s,]+$',
-		r'^[\-\._\s,]',
-		r'\s*(1st|2nd|3rd)\s+edition$',
-	]
-]
 
 DECAMEL_RE = re.compile('([A-Z][A-Z][a-z])|([a-z][A-Z])')
 
+BRACKET_TMPL = r'\%(start)s[^\%(stop)s]*\%(stop)s'
+BRACKET_CHARS = [
+	[r'\(', r'\)'],
+	[r'\[', r'\]'],
+	[r'\{', r'\}']
+]
+BRACKET_RES = [re.compile (BRACKET_TMPL % {'start': x[0], 'stop': x[1]}) for
+	x in BRACKET_CHARS]
+
+REPLACE_CHARS = [
+	r'\.',
+	r'!',
+	r'%20'
+]
+REPLACE_CHARS_RE = re.compile (r'|'.join (REPLACE_CHARS))
+
+# remove edition info, isbns, publication year
+STRIP_CHARS = [
+	r'ebook\-een',
+	r'(1st|2nd|3rd)\s+edition',
+	r'isbn',
+	r'[\d\- ]{10,}'
+	r'[12]\d{3}'
+]
+STRIP_CHARS_RE = re.compile (r'|'.join (STRIP_CHARS))
+
+COLLAPSE_SPACE_RE = re.compile (r'\s+')
+
 _DEV_MODE = True
 
+LOG_LEVELS = {
+	0: logging.EXCEPTION,
+	1: logging.CRITICAL,
+	2: logging.ERROR,
+	3: logging.WARNING,
+	4: logging.INFO,
+	5: logging.DEBUG,
+}
 
 ### IMPLEMENTATION ###
 
-def ask_choice (prompt="Use this", choices='yna'):
-	print "%s? [%s]" % (prompt, choices),
-	answer = raw_input().lower().strip()
+def setup_global_logger (name='myscript', level=logging.INFO):
+	global logger
+	logging.basicConfig (level=level, stream=sys.stdout,
+		format= "%(message)s")
+	logger = logging.getLogger (name)
+
+def partition_title (strn):
+	"""
+	Seperate the string into a title, author and other segment. 
+	"""
+	if (' by ' in strn):
+		return [x.strip() for x in strn.split (' by ', 1)]
+	#for sep in ['-', '_', ':']
+
+def ask_choice (prompt="Your choice", choices='yna',
+		transform=lambda s: s.lower()):
+	"""
+	Prompt the user for a choice.
+	
+	:Parameters:
+		prompt
+			The message to prompt the user 
+	
+	The choices can be a string (of 1 letter choices) or a list of strings.
+	The prompt will repeat until a legal answer is given.
+	
+	"""
+	# TODO: a transform input param, to map or cleanup input?
+	print "%s? [%s]" % (prompt, ','.join (list (choices))),
+	answer = transform (raw_input().strip())
 	if (answer in choices):
 		return answer
 	else:
 		return ask_choice (prompt, choices)
 	
-def space_out_camel_case(stringAsCamelCase):
-	"""Adds spaces to a camel case string.Failure to space out string returns the original string.
-	>>> space_out_camel_case('DMLSServicesOtherBSTextLLC')
-	'DMLS Services Other BS Text LLC'
+	
+def decamel (stringAsCamelCase):
+	"""
+	Converts a string with camelCaseWords to a space delimited one.
+	
+	For example::
+	
+		>>> decamel ('Magic fun Time hurray')
+		'Magic fun Time hurray'
+		>>> decamel ('Magic funTime hurray')
+		'Magic fun Time hurray'
+		>>> decamel ('Magic FunTime hurray')
+		'Magic Fun Time hurray'
+		>>> decamel ('MagicFun funTimeHurray')
+		'Magic Fun fun Time Hurray'
+		
 	"""
 	if stringAsCamelCase is None:
 		return None
 	return DECAMEL_RE.sub (lambda m: m.group()[:1] + " " + m.group()[1:], stringAsCamelCase)
+		
+		
+def strip_asides (strn):
+	"""
+	Remove bracketed sections from string.
+	
+	For example::
+	
+		>>> strip_asides ('This is (not) funny.')
+		'This is  funny.'
+		>>> strip_asides ('This is funny.')
+		'This is funny.'
+		>>> strip_asides ('This [is] (not) funny.')
+		'This   funny.'
+		>>> strip_asides ('This [is (not) funny].')
+		'This .'
+		
+	"""
+	for re in BRACKET_RES:
+		strn = re.sub (' ', strn)
+	return strn
+	
+def replace_chars (strn):
+	"""
+	Replace various substrings with a space.
+	"""
+	return REPLACE_CHARS_RE.sub (' ', strn)
+	
+def strip_chars (strn):
+	"""
+	Replace various substrings with a space.
+	"""
+	return STRIP_CHARS_RE.sub ('', strn)
+	
+def norm_space (strn):
+	"""
+	Cleanup space in a string.
+	"""
+	return COLLAPSE_SPACE_RE.sub (' ', strn).strip()
 		
 	
 def parse_args():
@@ -111,41 +214,60 @@ def rename_inplace (oldpath, newname):
 
 
 def extract_title_from_filename (fname):
+	# clean up name
+	basename = fname
+	logger.debug ("Basename %s ..." % basename)
+	basename = decamel (basename).lower()
+	logger.debug ("Decamel'd %s ..." % basename)
+	basename = strip_asides (basename)
+	logger.debug ("No asides %s ..." % basename)
+	basename = strip_chars (basename)
+	logger.debug ("Strip chars %s ..." % basename)
+	basename = replace_chars (basename)
+	logger.debug ("Replace chars %s ..." % basename)
+	basename = norm_space (basename)
+	logger.debug ("Cleanup space %s ..." % basename)
+	
+	# break into parts
+	if (' by ' in basename):
+		parts = basename.split ( ' by ')
+
 	# TODO: check for 'by'
-	stripped_name = space_out_camel_case (fname).strip().lower()
-	for re in STRIP_TITLE_RES:
-		stripped_name = re.sub ('', stripped_name)
-	splitchar = ''
-	for c in ['-', '_', '.']:
-		if stripped_name.count(c):
-			splitchar = c
-			break
-	if (splitchar):
-		part1, part2 = stripped_name.split (splitchar, 1)
-		part1 = CLEAN_TITLE_RE.sub (' ', part1).strip()
-		part2 = CLEAN_TITLE_RE.sub (' ', part2).strip()
-		wordlen1, wordlen2 = len (part1.split (' ')), len (part2.split (' '))
-		if (wordlen2 < wordlen1):
-			title = part1
-		else:
-			title = part2
-	else:
-		title = stripped_name
-	clean_title = CLEAN_TITLE_RE.sub (' ', title).strip()
-	return clean_title
+#	for re in STRIP_TITLE_RES:
+#		stripped_name = re.sub ('', stripped_name)
+#	splitchar = ''
+#	for c in ['-', '_', '.']:
+#		if stripped_name.count(c):
+#			splitchar = c
+#			break
+#	if (splitchar):
+#		part1, part2 = stripped_name.split (splitchar, 1)
+#		part1 = CLEAN_TITLE_RE.sub (' ', part1).strip()
+#		part2 = CLEAN_TITLE_RE.sub (' ', part2).strip()
+#		wordlen1, wordlen2 = len (part1.split (' ')), len (part2.split (' '))
+#		if (wordlen2 < wordlen1):
+#			title = part1
+#		else:
+#			title = part2
+#	else:
+#		title = stripped_name
+#	clean_title = CLEAN_TITLE_RE.sub (' ', title).strip()
+#	return clean_title
+
+	return basename
 
 
 def main():
 	fpath_list, options = parse_args()
-	logging.basicConfig (level=logging.INFO, stream=sys.stdout,
-		format= "%(message)s")
+	setup_global_logger ('renamebytitle', logging.DEBUG)
+
 	try:
 		webqry = construct_webquery (options.webservice, options.service_key)
 		for fpath in fpath_list:
-			logging.info ("Original %s ..." % fpath)
+			logger.info ("Original %s ..." % fpath)
 			fdir, base, ext = dir_base_ext_from_path (fpath)
 			title = extract_title_from_filename (base)
-			logging.info ("~ extracted title '%s' ..." % title)
+			logger.info ("~ extracted title '%s' ..." % title)
 			continue
 			if (isbn):
 				try:
@@ -155,23 +277,23 @@ def main():
 						bibinfo = bibrec_list[0]
 						new_name = generate_new_name (bibinfo, options)
 						new_name = postprocess_name (new_name, options)
-						logging.info ('~ new name %s' % new_name)
+						logger.info ('~ new name %s' % new_name)
 						newpath = path.join (fdir, new_name + ext)
-						logging.info ('~ new path %s' % newpath)
+						logger.info ('~ new path %s' % newpath)
 						rename_file = not (options.dryrun)
 						if (path.exists (newpath)):
-							logging.info ('~ path already exists')
+							logger.info ('~ path already exists')
 							if not options.overwrite:
 								rename_file = False
 						if (rename_file):
-							logging.info ('~ renaming file')
+							logger.info ('~ renaming file')
 							rename (fpath, newpath)
 					else:
-						logging.info ('- no records returned')
+						logger.info ('- no records returned')
 				except errors.QueryError, err:
-					logging.info ('- query failed: %s.' % err)
+					logger.info ('- query failed: %s.' % err)
 			else:
-				print logging.info ('- no isbn extracted')
+				print logger.info ('- no isbn extracted')
 		
 	except BaseException, err:
 		if (_DEV_MODE or options.debug):
@@ -186,6 +308,11 @@ def main():
 	
 	
 ### TEST & DEBUG ###
+
+def _doctest ():
+	import doctest
+	doctest.testmod()
+	
 
 ### MAIN ###
 

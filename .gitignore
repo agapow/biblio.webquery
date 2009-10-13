@@ -4,3 +4,5 @@ docs/api
 *.pyc
 build
 dist
+*.egg-info
+dev
